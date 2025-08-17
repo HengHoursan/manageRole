@@ -71,8 +71,8 @@ const Product = () => {
   const [productToDelete, setProductToDelete] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
-  const BASE_URL = import.meta.env.VITE_BASE_URL;
-  console.log("BASE URL:", BASE_URL);
+  // const BASE_URL = import.meta.env.VITE_BASE_URL;
+  // console.log("BASE URL:", BASE_URL);
   const form = useForm({
     defaultValues: {
       productName: "",
@@ -125,7 +125,7 @@ const Product = () => {
           description: error.response.data.message,
         });
       } else {
-        console.log("Something went wrong while fetching product data", error);
+        console.log("Something went wrong while creating product data", error);
         toast.error("Failed to create product");
       }
     } finally {
@@ -142,7 +142,7 @@ const Product = () => {
       category: product.category?._id,
       image: null,
     });
-    setPreviewImage(`${BASE_URL}/${product.image.replace(/\\/g, "/")}`);
+    setPreviewImage(product.image);
 
     setOpenFormDialog(true);
   };
@@ -180,6 +180,7 @@ const Product = () => {
       setIsLoading(true);
       const token = localStorage.getItem("token");
       const productId = productToDelete ? productToDelete?.id : null;
+      console.log(productId)
       await deleteProduct(token, productId);
       setOpenDeleteDialog(false);
       await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -201,20 +202,24 @@ const Product = () => {
     }
   };
   const handleSubmitProductForm = async (formData) => {
-    // extract first file from FileList (or null if no file selected)
-    const imageFile = formData.image ? formData.image[0] : null;
-    const payload = {
-      ...formData,
-      image: imageFile,
-    };
-    if (isEditingProduct) {
-      await updateProductData(payload);
-    } else {
-      await createProduct(payload);
+    try {
+      setIsLoading(true);
+      setOpenFormDialog(false);
+      if (isEditingProduct) {
+        await updateProductData(formData);
+      } else {
+        await createProduct(formData);
+      }
+      console.log("This is formData:", formData);
+      handleCloseProductDialog();
+    } catch (error) {
+      console.error("Error submitting product form:", error);
+      toast.error("Failed to submit product");
+    } finally {
+      setIsLoading(false);
     }
-    console.log("This is payload:", payload);
-    handleCloseProductDialog();
   };
+
   const handleCloseProductDialog = () => {
     form.reset();
     setOpenFormDialog(false);
@@ -290,21 +295,14 @@ const Product = () => {
                     <TableCell>
                       {product.image ? (
                         <img
-                          src={`${BASE_URL}/${product.image.replace(
-                            /\\/g,
-                            "/"
-                          )}`}
+                          src={product.image} // use the Cloudinary URL directly
                           alt={product.productName}
                           className="h-10 w-10 object-cover rounded"
-                          onError={() => {
+                          onError={() =>
                             console.error(
                               `Failed to load image for ${product.productName}`
-                            );
-                            console.log(
-                              "Image URL:",
-                              `${BASE_URL}/${product.image.replace(/\\/g, "/")}`
-                            );
-                          }}
+                            )
+                          }
                         />
                       ) : (
                         <span className="text-sm text-muted-foreground">
@@ -312,6 +310,7 @@ const Product = () => {
                         </span>
                       )}
                     </TableCell>
+
                     <TableCell>
                       {product.category?.name || (
                         <span className="text-sm text-muted-foreground">
@@ -544,7 +543,7 @@ const Product = () => {
             <span className="text-muted-foreground font-medium">Image:</span>
             {viewProduct?.image ? (
               <img
-                src={`${BASE_URL}/${viewProduct.image.replace(/\\/g, "/")}`}
+                src={viewProduct.image} // use Cloudinary URL directly
                 alt={viewProduct.productName}
                 className="w-20 h-20 object-cover rounded"
               />

@@ -20,6 +20,10 @@ const productSchema = new mongoose.Schema({
     trim: true,
     required: true,
   },
+  cloudinary_id: {
+    type: String,
+    trim: true,
+  },
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "ProductCategory",

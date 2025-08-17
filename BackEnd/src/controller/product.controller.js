@@ -1,9 +1,11 @@
 const db = require("../model");
 const Product = db.product;
+const cloudinary = require("../config/cloudinary");
 
+// GET all products
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find().populate("category","name");
+    const products = await Product.find().populate("category", "name");
     if (products.length === 0) {
       return res.status(404).json({ message: "No products found" });
     }
@@ -14,6 +16,7 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
+// GET product by ID
 exports.getProductById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -21,26 +24,30 @@ exports.getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    res.status(200).json(product.toJSON());
+    res.status(200).json(product);
   } catch (error) {
     console.error("Error retrieving product:", error);
     res.status(500).json({ message: "Error retrieving product", error });
   }
 };
 
+// CREATE product
 exports.createProduct = async (req, res) => {
-  const { productName, price, description, image, category } = req.body;
-  if (!productName || price == null || !image || !category) {
-    return res.status(400).json({ message: "Required fields are missing" });
-  }
+  const { productName, price, description, category } = req.body;
   try {
+    // Upload image to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path);
+
+    // Create new product
     const newProduct = new Product({
       productName,
       price,
       description,
-      image,
       category,
+      image: result.secure_url, // Cloudinary image URL
+      cloudinary_id: result.public_id, // Cloudinary public_id
     });
+
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (error) {
@@ -49,32 +56,47 @@ exports.createProduct = async (req, res) => {
   }
 };
 
+// UPDATE product
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
-  const { productName, price, description, image, category } = req.body;
+  const { productName, price, description, category } = req.body;
   try {
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      { productName, price, description, image, category },
-      { new: true, runValidators: true }
-    );
-    if (!updatedProduct) {
-      return res.status(404).json({ message: "Product not found" });
+    let product = await Product.findById(id);
+    let result;
+    if (req.file) {
+      if (product.cloudinary_id) {
+        await cloudinary.uploader.destroy(product.cloudinary_id); // Delete old image from Cloudinary
+      }
+      result = await cloudinary.uploader.upload(req.file.path);
     }
-    res.status(200).json(updatedProduct);
+    const data = {
+      productName: productName || product.productName,
+      price: price || product.price,
+      description: description || product.description,
+      category: category || product.category,
+      image: result?.secure_url || product.image,
+      cloudinary_id: result?.public_id || product.cloudinary_id,
+    };
+    product = await Product.findByIdAndUpdate(id, data, { new: true });
+    res.status(200).json(product);
   } catch (error) {
     console.error("Error updating product:", error);
     res.status(500).json({ message: "Error updating product", error });
   }
 };
 
+// DELETE product
 exports.deleteProduct = async (req, res) => {
   const { id } = req.params;
   try {
-    const deletedProduct = await Product.findByIdAndDelete(id);
-    if (!deletedProduct) {
+    const product = await Product.findById(id);
+    if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (product.cloudinary_id) {
+      await cloudinary.uploader.destroy(product.cloudinary_id);
+    }
+    await Product.findByIdAndDelete(id);
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     console.error("Error deleting product:", error);
