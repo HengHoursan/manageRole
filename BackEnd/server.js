@@ -11,8 +11,6 @@ const PORT = process.env.PORT || 3001;
 // Connect to MongoDB
 mongoConnection();
 
-
-
 // Middleware
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -21,7 +19,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://manage-role-57blp7i3r-heng-hoursans-projects.vercel.app",
-      "https://manage-role.vercel.app/",
+      "https://manage-role.vercel.app",
     ],
   })
 );
