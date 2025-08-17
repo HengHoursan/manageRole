@@ -52,7 +52,6 @@ import { Textarea } from "@/components/ui/textarea";
 import Loader from "../components/Loader";
 import { Eye, SquarePen, Trash2, Plus, EllipsisVertical } from "lucide-react";
 
-
 const ProductCategory = () => {
   const [categoryData, setCategoryData] = useState([]);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
@@ -78,10 +77,10 @@ const ProductCategory = () => {
       // await new Promise((resolve) => setTimeout(resolve, 3000));
       setCategoryData(getCategoryData);
     } catch (error) {
-      console.log('Something went wrong while fetching product category data:', error);
-      toast.error("Error Fetching", {
-        description: "Error fetching product category data",
-      });
+      console.log(
+        "Something went wrong while fetching product category data:",
+        error
+      );
     } finally {
       setIsLoading(false);
     }
@@ -108,76 +107,85 @@ const ProductCategory = () => {
           description: error.response.data.message,
         });
       } else {
-        console.error("Something went wrong while creating product category:", error);
+        console.error(
+          "Something went wrong while creating product category:",
+          error
+        );
         toast.error("Failed to create product category.");
       }
     } finally {
       setIsLoading(false);
     }
   };
-  const editProductCategory =  (category) => {
+  const editProductCategory = (category) => {
     setIsEditingCategory(true);
     setOpenFormDialog(true);
     setCategoryToEdit(category);
     form.reset({
-        name:category.name,
-        description:category.description
+      name: category.name,
+      description: category.description,
     });
-  }
+  };
   const updateProductCategoryData = async (formData) => {
-    try{
+    try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
       const categoryId = categoryToEdit ? categoryToEdit?.id : null;
-      await updateProductCategory(token,categoryId,formData);
+      await updateProductCategory(token, categoryId, formData);
       setOpenFormDialog(false);
       await new Promise((resolve) => setTimeout(resolve, 3000));
       setIsEditingCategory(false);
-      setCategoryToEdit(null)
+      setCategoryToEdit(null);
       toast.success("Updated successful!", {
         description: "Product category has updated successfully.",
-      })
+      });
       form.reset();
       await fetchProductCategoryData();
-    }catch(error){
+    } catch (error) {
       if (error.response?.status === 403) {
         toast.error("Permission Denied", {
           description: error.response.data.message,
         });
       } else {
-        console.error("Something went wrong while updating product category:",error)
+        console.error(
+          "Something went wrong while updating product category:",
+          error
+        );
         toast.error("Error updating product category");
       }
-    }finally {
+    } finally {
       setIsLoading(false);
     }
-  }
+  };
   const confirmDeleteCategory = async () => {
     if (!categoryToDelete) return;
-    try{
+    try {
       setIsLoading(true);
       const token = localStorage.getItem("token");
       const categoryId = categoryToDelete ? categoryToDelete?.id : null;
-      await deleteProductCategory(token,categoryId);
+      await deleteProductCategory(token, categoryId);
       setOpenDeleteDialog(false);
       await new Promise((resolve) => setTimeout(resolve, 3000));
       toast.success("Deleted successful!", {
         description: "Product category have deleted successfully.",
-      })
+      });
       await fetchProductCategoryData();
-    }catch(error) {
+    } catch (error) {
       if (error.response?.status === 403) {
         toast.error("Permission Denied", {
           description: error.response.data.message,
         });
       } else {
-        console.error("Something went wrong while deleting product category:",error)
+        console.error(
+          "Something went wrong while deleting product category:",
+          error
+        );
         toast.error("Error deleting product category");
       }
-    }finally {
+    } finally {
       setIsLoading(false);
     }
-  }
+  };
   const handleSubmitForm = async (formData) => {
     if (isEditingCategory) {
       await updateProductCategoryData(formData);
@@ -190,8 +198,8 @@ const ProductCategory = () => {
     form.reset({
       name: "",
       description: "",
-        });
-    setCategoryToEdit(null)
+    });
+    setCategoryToEdit(null);
     setOpenFormDialog(false);
     setIsEditingCategory(false);
   };
@@ -280,18 +288,20 @@ const ProductCategory = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                              className="cursor-pointer"
-                              onClick={() => {
-                                setViewCategory(category);
-                                setOpenViewDialog(true);
-                              }}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              setViewCategory(category);
+                              setOpenViewDialog(true);
+                            }}
                           >
-                            <Eye/>
+                            <Eye />
                             View
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                              className="cursor-pointer"
-                              onClick={() => {editProductCategory(category)}}
+                            className="cursor-pointer"
+                            onClick={() => {
+                              editProductCategory(category);
+                            }}
                           >
                             <SquarePen />
                             Edit
@@ -360,11 +370,7 @@ const ProductCategory = () => {
               {/* Footer Buttons */}
               <DialogFooter className="pt-2">
                 <DialogClose asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleClose}
-                  >
+                  <Button type="button" variant="ghost" onClick={handleClose}>
                     Close
                   </Button>
                 </DialogClose>
@@ -402,20 +408,26 @@ const ProductCategory = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    {/*  View Dialog*/}
+      {/*  View Dialog*/}
       <Dialog open={openViewDialog} onOpenChange={setOpenViewDialog}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Category Details</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-[100px_1fr] gap-y-3 gap-x-4 text-sm pt-2">
-            <span className="text-muted-foreground font-medium">Category ID:</span>
+            <span className="text-muted-foreground font-medium">
+              Category ID:
+            </span>
             <span>{viewCategory?.id}</span>
 
-            <span className="text-muted-foreground font-medium">Category Name:</span>
+            <span className="text-muted-foreground font-medium">
+              Category Name:
+            </span>
             <span>{viewCategory?.name}</span>
 
-            <span className="text-muted-foreground font-medium">Description:</span>
+            <span className="text-muted-foreground font-medium">
+              Description:
+            </span>
             <p className="col-span-1 whitespace-pre-line">
               {viewCategory?.description || "No description"}
             </p>
@@ -427,7 +439,6 @@ const ProductCategory = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </>
   );
 };
