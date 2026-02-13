@@ -52,11 +52,9 @@ exports.login = async (req, res) => {
     }
     // Check if the user is a password provider
     if (user.provider && user.provider !== PROVIDERS.PASSWORD) {
-      return res
-        .status(400)
-        .json({
-          message: `Please log in using your ${user.provider} account.`,
-        });
+      return res.status(400).json({
+        message: `Please log in using your ${user.provider} account.`,
+      });
     }
 
     const isMatchPassword = await bcrypt.compare(password, user.password);
@@ -86,15 +84,8 @@ exports.login = async (req, res) => {
 
 exports.telegramLogin = async (req, res) => {
   try {
-    const {
-      id: provider_id,
-      username,
-      first_name,
-      last_name,
-      auth_date,
-      hash,
-      photo_url,
-    } = req.body;
+    const { username, first_name, last_name, auth_date, hash, photo_url } =
+      req.body;
 
     // 1. Validate required Telegram auth data
     if (!auth_date || !hash || !provider_id) {
@@ -119,7 +110,7 @@ exports.telegramLogin = async (req, res) => {
 
     let user = await User.findOne({
       provider: PROVIDERS.TELEGRAM,
-      provider_id: String(provider_id),
+      provider_id,
     });
 
     if (!user) {
@@ -130,7 +121,7 @@ exports.telegramLogin = async (req, res) => {
       user = new User({
         username: newUsername,
         provider: PROVIDERS.TELEGRAM,
-        provider_id: String(provider_id),
+        provider_id: provider_id,
         photo_url: photo_url || undefined,
         role: "Admin", // Default role for new Telegram users
         email: `${newUsername}@telegram.com`, // A dummy email if none provided by Telegram
