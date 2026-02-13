@@ -76,25 +76,23 @@ const Login = () => {
     const container = document.getElementById("telegram-login-button");
     if (!container) return;
 
-    // Clear container to prevent duplicate buttons
+    // Clear any existing content to prevent button duplication
     container.innerHTML = "";
 
     const script = document.createElement("script");
     script.src = "https://telegram.org/js/telegram-widget.js?22";
     script.async = true;
-
-    // Attributes
     script.setAttribute("data-telegram-login", "SarnaBot_bot");
     script.setAttribute("data-size", "large");
     script.setAttribute("data-radius", "8");
     script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
 
-    // CRITICAL: Append to the specific container inside your card
+    // This puts the button EXACTLY where you want it in the UI
     container.appendChild(script);
 
     return () => {
-      container.innerHTML = "";
+      if (container) container.innerHTML = "";
     };
   }, []);
 

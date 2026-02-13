@@ -144,8 +144,14 @@
     --sidebar-ring: oklch(0.439 0 0);
   }
 }
+#telegram-login-button {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px; /* Prevents layout shift */
+}
+
 #telegram-login-button iframe {
   margin: 0 auto !important;
-  display: block !important;
-  position: static !important; /* This prevents it from floating in the corner */
+  position: static !important; /* Forces it out of the screen corner */
 }
