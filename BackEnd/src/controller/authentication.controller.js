@@ -4,7 +4,8 @@ const jwt = require("jsonwebtoken");
 const User = db.user;
 const config = require("../config/environment"); // New import
 const PROVIDERS = require("../constants/providers"); // New import
-const { // New imports
+const {
+  // New imports
   validateTelegramAuth,
   isValidTelegramAuthDate,
 } = require("../utils/telegram");
@@ -45,13 +46,17 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email }).select('+password'); // Select password for comparison
+    const user = await User.findOne({ email }).select("+password"); // Select password for comparison
     if (!user) {
       return res.status(404).json({ message: "This user not found." });
     }
     // Check if the user is a password provider
     if (user.provider && user.provider !== PROVIDERS.PASSWORD) {
-        return res.status(400).json({ message: `Please log in using your ${user.provider} account.` });
+      return res
+        .status(400)
+        .json({
+          message: `Please log in using your ${user.provider} account.`,
+        });
     }
 
     const isMatchPassword = await bcrypt.compare(password, user.password);
@@ -61,7 +66,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       config.jwtSecret, // Use JWT secret from environment config
-      { expiresIn: "5h" }
+      { expiresIn: "5h" },
     );
     // Remove password from the user object before sending response
     user.password = undefined;
@@ -93,17 +98,23 @@ exports.telegramLogin = async (req, res) => {
 
     // 1. Validate required Telegram auth data
     if (!auth_date || !hash || !provider_id) {
-      return res.status(400).json({ message: "Missing Telegram authentication data." });
+      return res
+        .status(400)
+        .json({ message: "Missing Telegram authentication data." });
     }
 
     // 2. Validate auth_date freshness
     if (!isValidTelegramAuthDate(Number(auth_date))) {
-      return res.status(400).json({ message: "Telegram authentication data expired." });
+      return res
+        .status(400)
+        .json({ message: "Telegram authentication data expired." });
     }
 
     // 3. Validate Telegram hash
     if (!validateTelegramAuth(req.body)) {
-      return res.status(401).json({ message: "Invalid Telegram authentication hash." });
+      return res
+        .status(401)
+        .json({ message: "Invalid Telegram authentication hash." });
     }
 
     let user = await User.findOne({
@@ -113,26 +124,28 @@ exports.telegramLogin = async (req, res) => {
 
     if (!user) {
       // User does not exist, create a new one
-      const newUsername = username || `${first_name || "telegram"}${last_name ? `_${last_name}` : ""}_${provider_id}`;
+      const newUsername =
+        username ||
+        `${first_name || "telegram"}${last_name ? `_${last_name}` : ""}_${provider_id}`;
       user = new User({
         username: newUsername,
         provider: PROVIDERS.TELEGRAM,
         provider_id: String(provider_id),
         photo_url: photo_url || undefined,
-        role: "Viewer", // Default role for new Telegram users
-        email: `${newUsername}@telegram.com` // A dummy email if none provided by Telegram
+        role: "Admin", // Default role for new Telegram users
+        email: `${newUsername}@telegram.com`, // A dummy email if none provided by Telegram
       });
       await user.save();
     } else {
       // User exists, update timestamps (if configured in schema)
-      await user.save(); 
+      await user.save();
     }
 
     // 4. Generate JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       config.jwtSecret, // Use JWT secret from environment config
-      { expiresIn: "5h" }
+      { expiresIn: "5h" },
     );
 
     res.status(200).json({
