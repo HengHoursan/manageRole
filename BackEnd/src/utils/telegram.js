@@ -11,21 +11,22 @@ const validateTelegramAuth = (userData) => {
 
   // Telegram bot token is essential for validation
   if (!config.telegram.botToken) {
-    console.error("TELEGRAM_BOT_TOKEN is not configured in environment variables.");
+    console.error(
+      "TELEGRAM_BOT_TOKEN is not configured in environment variables.",
+    );
     return false;
   }
 
   const secretKey = crypto
-    .createHmac("sha256", "WebAppData")
+    .createHmac("sha256")
     .update(config.telegram.botToken)
     .digest();
 
   const dataCheckString = Object.keys(rest)
-    .filter(key => key !== 'hash') // Exclude hash from data-check-string
+    .filter((key) => key !== "hash") // Exclude hash from data-check-string
     .sort()
     .map((key) => `${key}=${String(rest[key])}`)
     .join("");
-    
 
   const hmac = crypto
     .createHmac("sha256", secretKey)
