@@ -56,7 +56,7 @@ const Login = () => {
           );
 
           toast.success("Telegram login successful!");
-          navigate("/");
+          navigate("/layout");
         }
       } catch (error) {
         console.error("Telegram login error:", error);
@@ -116,7 +116,7 @@ const Login = () => {
         );
 
         toast.success("Login successful!");
-        navigate("/");
+        navigate("/layout");
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Login failed.");
