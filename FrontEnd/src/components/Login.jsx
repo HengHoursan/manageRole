@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // Import useState and useEffect
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   Card,
@@ -20,96 +20,108 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { loginUser, telegramLoginUser } from "../api/authAction"; // Import telegramLoginUser
+import { loginUser, telegramLoginUser } from "../api/authAction";
 import { toast } from "sonner";
 import Loader from "./Loader";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
   const form = useForm({
     defaultValues: {
       email: "",
       password: "",
     },
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Telegram Login Handler
+  // --- 1. HANDLE TELEGRAM CALLBACK DATA ---
   useEffect(() => {
     window.onTelegramAuth = async (user) => {
       try {
         setIsLoading(true);
         const response = await telegramLoginUser(user);
-        console.log("Telegram login successful:", response.user);
         const userData = response.user;
+
         if (userData) {
-          const username = userData.username;
-          const role = userData.role;
-          const token = userData.token;
-          const photo_url = userData.photo_url; // Assuming photo_url is returned
+          localStorage.setItem("token", userData.token);
+          localStorage.setItem(
+            "userData",
+            JSON.stringify({
+              username: userData.username,
+              role: userData.role,
+              photo_url: userData.photo_url,
+            }),
+          );
 
-          localStorage.setItem("token", token);
-          localStorage.setItem("userData", JSON.stringify({ username, role, photo_url }));
-
-          console.log("Username:", username);
-          console.log("Role:", role);
-          console.log("Photo URL:", photo_url);
-        } else {
-          console.log("No user data Found from Telegram login");
+          toast.success("Telegram login successful!");
+          navigate("/");
         }
-
-        toast.success("Telegram login successful!", {
-          description: "You have been successfully logged in with Telegram.",
-        });
-
-        navigate("/"); // Navigate to home or dashboard after successful login
       } catch (error) {
         console.error("Telegram login error:", error);
-        toast.error(error.response?.data?.message || "Telegram login failed.", {
-          description: "Please try again or use another login method.",
-        });
+        toast.error(error.response?.data?.message || "Telegram login failed.");
       } finally {
         setIsLoading(false);
       }
     };
 
     return () => {
-      delete window.onTelegramAuth; // Clean up global function
+      delete window.onTelegramAuth; // Cleanup
     };
   }, [navigate]);
 
-  const LoginUser = async (formData) => {
+  // --- 2. INJECT TELEGRAM SCRIPT ---
+  useEffect(() => {
+    // Check if script already exists to prevent duplicates
+    const existingScript = document.getElementById("telegram-widget-script");
+    if (!existingScript) {
+      const script = document.createElement("script");
+      script.id = "telegram-widget-script";
+      script.src = "https://telegram.org/js/telegram-widget.js?22";
+      script.async = true;
+
+      // ATTENTION: Change 'first_test_bot' to your actual bot username
+      script.setAttribute("data-telegram-login", "first_test_bot");
+      script.setAttribute("data-size", "large");
+      script.setAttribute("data-radius", "8");
+      script.setAttribute("data-onauth", "onTelegramAuth(user)");
+      script.setAttribute("data-request-access", "write");
+
+      const container = document.getElementById("telegram-login-button");
+      if (container) {
+        container.appendChild(script);
+      }
+    }
+
+    return () => {
+      const container = document.getElementById("telegram-login-button");
+      if (container) container.innerHTML = "";
+    };
+  }, []);
+
+  // --- 3. STANDARD EMAIL/PASS LOGIN ---
+  const onLoginSubmit = async (formData) => {
     try {
       setIsLoading(true);
       const response = await loginUser(formData);
-      console.log("Login successful:", response.user);
       const userData = response.user;
+
       if (userData) {
-        const username = userData.username;
-        const role = userData.role;
-        const token = userData.token;
+        localStorage.setItem("token", userData.token);
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            username: userData.username,
+            role: userData.role,
+          }),
+        );
 
-        localStorage.setItem("token", token);
-        localStorage.setItem("userData", JSON.stringify({ username, role }));
-
-        console.log("Username:", username);
-        console.log("Role:", role);
-      } else {
-        console.log("No user data Found");
+        toast.success("Login successful!");
+        navigate("/");
       }
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      toast.success("Login successful!", {
-        description: "You have been successfully logged in.",
-      });
-
-      navigate("/"); // Navigate to home or dashboard after successful login
     } catch (error) {
-      console.error("Login error:", error);
-      toast.error(error.response?.data?.message || "Login failed.", {
-        description: "Please check your email and password and try again.",
-      });
+      toast.error(error.response?.data?.message || "Login failed.");
     } finally {
       setIsLoading(false);
     }
@@ -122,13 +134,16 @@ const Login = () => {
           <CardTitle className="text-[20px] text-center">
             Login to your account
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-center">
             Enter your email below to login to your account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(LoginUser)} className="space-y-5">
+            <form
+              onSubmit={form.handleSubmit(onLoginSubmit)}
+              className="space-y-5"
+            >
               <FormField
                 control={form.control}
                 name="email"
@@ -172,33 +187,36 @@ const Login = () => {
                 <Label htmlFor="showPassword">Show Password</Label>
               </div>
 
-              <Button
-                className="w-full text-white bg-black cursor-pointer"
-                variant="default"
-                type="submit"
-              >
+              <Button className="w-full text-white bg-black" type="submit">
                 Login
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col">
-          <div className="mt-4 text-center text-sm">
+          <div className="text-center text-sm">
             Don't have an account?{" "}
             <span
-              className=" underline cursor-pointer"
+              className="underline cursor-pointer font-medium"
               onClick={() => navigate("/register")}
             >
               Register now
             </span>
           </div>
-          <div className="mt-4 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-neutral-300 after:mt-0.5 after:flex-1 after:border-t after:border-neutral-300">
-            <p className="mx-4 mb-0 text-center font-semibold ">OR</p>
+
+          <div className="w-full my-6 flex items-center before:flex-1 before:border-t before:border-neutral-300 after:flex-1 after:border-t after:border-neutral-300">
+            <p className="mx-4 text-center font-semibold text-neutral-500">
+              OR
+            </p>
           </div>
-          {/* Telegram Login Button */}
-          <div id="telegram-login-button" className="mt-4"></div>
+
+          {/* THE WIDGET CONTAINER */}
+          <div className="flex justify-center w-full min-h-[40px]">
+            <div id="telegram-login-button"></div>
+          </div>
         </CardFooter>
       </Card>
+
       {isLoading && (
         <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
           <Loader />
