@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const PROVIDERS = require("../constants/providers");
 
 const userSchema = new mongoose.Schema(
   {
@@ -10,19 +11,36 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
+      required: false, // Made optional for provider-based logins
       unique: true,
+      sparse: true, // Allows null values for unique fields
       trim: true,
     },
     password: {
       type: String,
-      required: true,
+      required: false, // Made optional for provider-based logins
+      select: false, // Do not return password by default
     },
     role: {
       type: String,
       required: true,
       enum: ["Admin", "Editor", "Viewer"],
       default: "Viewer",
+    },
+    provider: {
+      type: String,
+      enum: Object.values(PROVIDERS),
+      required: true,
+      default: PROVIDERS.PASSWORD, // Default to password for existing users
+    },
+    provider_id: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values for unique fields
+    },
+    photo_url: {
+      type: String,
+      trim: true,
     },
   },
   {

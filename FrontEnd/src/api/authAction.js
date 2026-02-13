@@ -25,3 +25,16 @@ export const loginUser = async (credentials) => {
     throw error;
   }
 };
+
+export const telegramLoginUser = async (telegramData) => {
+  try {
+    const response = await axios.post(`${API_URL}/api/auth/telegram-login`, telegramData);
+    const { data } = response;
+    console.log("Telegram user logged in successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("Error logging in with Telegram:", error);
+    throw error;
+  }
+};
+

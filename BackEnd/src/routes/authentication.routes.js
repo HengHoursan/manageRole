@@ -8,4 +8,7 @@ router.post("/register", authenicationController.register);
 // login route
 router.post("/login", authenicationController.login);
 
+// telegram login route
+router.post("/telegram-login", authenicationController.telegramLogin);
+
 module.exports = router;

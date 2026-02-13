@@ -1,4 +1,4 @@
-import { useState } from "react"; // Import useState
+import { useState, useEffect } from "react"; // Import useState and useEffect
 import { useForm } from "react-hook-form";
 import {
   Card,
@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { loginUser } from "../api/authAction";
+import { loginUser, telegramLoginUser } from "../api/authAction"; // Import telegramLoginUser
 import { toast } from "sonner";
 import Loader from "./Loader";
 
@@ -34,6 +34,51 @@ const Login = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Telegram Login Handler
+  useEffect(() => {
+    window.onTelegramAuth = async (user) => {
+      try {
+        setIsLoading(true);
+        const response = await telegramLoginUser(user);
+        console.log("Telegram login successful:", response.user);
+        const userData = response.user;
+        if (userData) {
+          const username = userData.username;
+          const role = userData.role;
+          const token = userData.token;
+          const photo_url = userData.photo_url; // Assuming photo_url is returned
+
+          localStorage.setItem("token", token);
+          localStorage.setItem("userData", JSON.stringify({ username, role, photo_url }));
+
+          console.log("Username:", username);
+          console.log("Role:", role);
+          console.log("Photo URL:", photo_url);
+        } else {
+          console.log("No user data Found from Telegram login");
+        }
+
+        toast.success("Telegram login successful!", {
+          description: "You have been successfully logged in with Telegram.",
+        });
+
+        navigate("/"); // Navigate to home or dashboard after successful login
+      } catch (error) {
+        console.error("Telegram login error:", error);
+        toast.error(error.response?.data?.message || "Telegram login failed.", {
+          description: "Please try again or use another login method.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    return () => {
+      delete window.onTelegramAuth; // Clean up global function
+    };
+  }, [navigate]);
+
   const LoginUser = async (formData) => {
     try {
       setIsLoading(true);
@@ -59,7 +104,7 @@ const Login = () => {
         description: "You have been successfully logged in.",
       });
 
-      navigate("/layout");
+      navigate("/"); // Navigate to home or dashboard after successful login
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error.response?.data?.message || "Login failed.", {
@@ -147,6 +192,11 @@ const Login = () => {
               Register now
             </span>
           </div>
+          <div className="mt-4 flex items-center before:mt-0.5 before:flex-1 before:border-t before:border-neutral-300 after:mt-0.5 after:flex-1 after:border-t after:border-neutral-300">
+            <p className="mx-4 mb-0 text-center font-semibold ">OR</p>
+          </div>
+          {/* Telegram Login Button */}
+          <div id="telegram-login-button" className="mt-4"></div>
         </CardFooter>
       </Card>
       {isLoading && (
