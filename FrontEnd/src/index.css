@@ -118,7 +118,7 @@
     @apply bg-background text-foreground;
   }
 }
-*{
+* {
   font-family: Poppins;
 }
 @layer base {
@@ -144,9 +144,8 @@
     --sidebar-ring: oklch(0.439 0 0);
   }
 }
-/* body{
-  height: 80vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-} */
+#telegram-login-button iframe {
+  margin: 0 auto !important;
+  display: block !important;
+  position: static !important; /* This prevents it from floating in the corner */
+}

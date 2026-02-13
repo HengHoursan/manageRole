@@ -73,28 +73,28 @@ const Login = () => {
 
   // --- 2. INJECT TELEGRAM SCRIPT ---
   useEffect(() => {
-    // Check if script already exists to prevent duplicates
-    const existingScript = document.getElementById("telegram-widget-script");
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.id = "telegram-widget-script";
-      script.src = "https://telegram.org/js/telegram-widget.js?22";
-      script.async = true;
-      script.setAttribute("data-telegram-login", "SarnaBot_bot");
-      script.setAttribute("data-size", "large");
-      script.setAttribute("data-radius", "8");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
-      script.setAttribute("data-request-access", "write");
+    const container = document.getElementById("telegram-login-button");
+    if (!container) return;
 
-      const container = document.getElementById("telegram-login-button");
-      if (container) {
-        container.appendChild(script);
-      }
-    }
+    // Clear container to prevent duplicate buttons
+    container.innerHTML = "";
+
+    const script = document.createElement("script");
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+
+    // Attributes
+    script.setAttribute("data-telegram-login", "SarnaBot_bot");
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "8");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-request-access", "write");
+
+    // CRITICAL: Append to the specific container inside your card
+    container.appendChild(script);
 
     return () => {
-      const container = document.getElementById("telegram-login-button");
-      if (container) container.innerHTML = "";
+      container.innerHTML = "";
     };
   }, []);
 
