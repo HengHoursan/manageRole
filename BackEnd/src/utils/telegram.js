@@ -9,33 +9,32 @@ const config = require("../config/environment");
 const validateTelegramAuth = (userData) => {
   const { hash, ...rest } = userData;
 
-  // Telegram bot token is essential for validation
+  // 1. Safety check for the token
   if (!config.telegram.botToken) {
-    console.error(
-      "TELEGRAM_BOT_TOKEN is not configured in environment variables.",
-    );
+    console.error("TELEGRAM_BOT_TOKEN is missing!");
     return false;
   }
 
+  // 2. Data-check-string MUST use newlines (\n) for the Login Widget
+  const dataCheckString = Object.keys(rest)
+    .sort()
+    .map((key) => `${key}=${rest[key]}`)
+    .join("\n");
+
+  // 3. Create secret key: SHA256 of the bot token (Widget method)
   const secretKey = crypto
-    .createHmac("sha256")
+    .createHash("sha256")
     .update(config.telegram.botToken)
     .digest();
 
-  const dataCheckString = Object.keys(rest)
-    .filter((key) => key !== "hash") // Exclude hash from data-check-string
-    .sort()
-    .map((key) => `${key}=${String(rest[key])}`)
-    .join("");
-
+  // 4. Generate HMAC-SHA256
   const hmac = crypto
     .createHmac("sha256", secretKey)
     .update(dataCheckString)
     .digest("hex");
 
-  return hmac === hash.toLowerCase(); // Ensure both are lowercase
+  return hmac === hash;
 };
-
 /**
  * Check if Telegram auth timestamp is valid
  * @param {number} authDate - Timestamp from Telegram
