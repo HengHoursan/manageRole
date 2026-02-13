@@ -207,9 +207,8 @@ const Login = () => {
               OR
             </p>
           </div>
-
           {/* THE WIDGET CONTAINER */}
-          <div className="flex justify-center w-full min-h-[40px]">
+          <div className="flex justify-center items-center w-full min-h-[60px] mt-2">
             <div id="telegram-login-button"></div>
           </div>
         </CardFooter>
