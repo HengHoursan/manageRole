@@ -84,8 +84,15 @@ exports.login = async (req, res) => {
 
 exports.telegramLogin = async (req, res) => {
   try {
-    const { username, first_name, last_name, auth_date, hash, photo_url } =
-      req.body;
+    const {
+      id: provider_id,
+      username,
+      first_name,
+      last_name,
+      auth_date,
+      hash,
+      photo_url,
+    } = req.body;
 
     // 1. Validate required Telegram auth data
     if (!auth_date || !hash || !provider_id) {
