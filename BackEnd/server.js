@@ -14,15 +14,7 @@ mongoConnection();
 // Middleware
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://manage-role-57blp7i3r-heng-hoursans-projects.vercel.app",
-      "https://manage-role.vercel.app",
-    ],
-  })
-);
+app.use(cors());
 
 // define routes
 app.use("/api/auth", authenticationRoutes);
