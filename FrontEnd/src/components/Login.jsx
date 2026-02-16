@@ -78,29 +78,32 @@ const Login = () => {
   };
 
   useEffect(() => {
-    window.onTelegramAuth = handleTelegramAuth;
+    // 1. Expose the callback to the global window object immediately
+    window.onTelegramAuth = (user) => {
+      console.log("🔵 CALLBACK TRIGGERED! Data:", user);
+      handleTelegramAuth(user);
+    };
 
-    if (!document.getElementById("telegram-login-script")) {
+    const widgetContainer = document.getElementById("telegram-login-widget");
+    if (widgetContainer && !document.getElementById("telegram-login-script")) {
       const script = document.createElement("script");
       script.id = "telegram-login-script";
       script.src = "https://telegram.org/js/telegram-widget.js?22";
       script.async = true;
 
-      // FIXED: Using your bot name without the underscore as requested
+      // 2. MUST match your @username from BotFather exactly (no @)
       script.setAttribute("data-telegram-login", "second_test1_bot");
-
       script.setAttribute("data-size", "large");
       script.setAttribute("data-onauth", "onTelegramAuth(user)");
       script.setAttribute("data-request-access", "write");
 
-      const widgetContainer = document.getElementById("telegram-login-widget");
-      if (widgetContainer) {
-        widgetContainer.innerHTML = "";
-        widgetContainer.appendChild(script);
-      }
+      widgetContainer.appendChild(script);
     }
 
     return () => {
+      // Cleanup
+      const script = document.getElementById("telegram-login-script");
+      if (script) script.remove();
       delete window.onTelegramAuth;
     };
   }, []);
