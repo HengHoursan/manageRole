@@ -86,10 +86,7 @@ const Login = () => {
     script.id = "telegram-login-script";
     script.src = "https://telegram.org/js/telegram-widget.js?22";
     script.async = true;
-    script.setAttribute(
-      "data-telegram-login",
-      import.meta.env.VITE_TELEGRAM_BOT_NAME,
-    );
+    script.setAttribute("data-telegram-login", "second_test1_bot");
     script.setAttribute("data-size", "large");
     script.setAttribute("data-onauth", "handleTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
