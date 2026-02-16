@@ -73,9 +73,9 @@ const Login = () => {
     }
   };
   useEffect(() => {
-    window.handleTelegramAuth = handleTelegramAuth;
+    window.onTelegramAuth = handleTelegramAuth;
     return () => {
-      delete window.handleTelegramAuth;
+      delete window.onTelegramAuth;
     };
   }, []);
   useEffect(() => {
@@ -86,7 +86,7 @@ const Login = () => {
     script.async = true;
     script.setAttribute("data-telegram-login", "second_test1_bot");
     script.setAttribute("data-size", "large");
-    script.setAttribute("data-onauth", "handleTelegramAuth(user)");
+    script.setAttribute("data-onauth", "onTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
 
     const widgetContainer = document.getElementById("telegram-login-widget");
