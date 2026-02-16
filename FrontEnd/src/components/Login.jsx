@@ -44,54 +44,58 @@ const Login = () => {
     }
   }, [navigate]);
 
+  // Telegram authentication handler
   const handleTelegramAuth = async (userData) => {
-    console.log("🔵 Callback triggered! Received:", userData); // This will show now
     try {
       setIsLoading(true);
-      const res = await telegramLoginUser(userData);
-      console.log("🟢 Server response:", res);
 
-      // FIX: res.user.token instead of res.token
-      if (res && res.user) {
-        localStorage.setItem("token", res.user.token);
-        localStorage.setItem("userData", JSON.stringify(res.user));
-        toast.success("Login successful!");
-        navigate("/layout");
+      const res = await telegramLoginUser(userData);
+
+      if (res) {
+        localStorage.setItem("token", res.token);
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            username: res.username,
+            role: res.role,
+            photo_url: res.photo_url,
+          }),
+        );
+
+        toast.success("Telegram login successful!");
+        navigate("/layout"); // ✅ correct for react-router
       }
     } catch (error) {
-      console.error("🔴 Auth error:", error);
+      console.error("Telegram auth error:", error);
+      toast.error(error?.response?.data?.message || "Telegram login failed.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Load Telegram widget + expose callback (order guaranteed)
   useEffect(() => {
-    // 1. Expose the callback to the global window object immediately
-    window.onTelegramAuth = (user) => {
-      console.log("🔵 CALLBACK TRIGGERED! Data:", user);
-      handleTelegramAuth(user);
-    };
+    // expose callback FIRST
+    window.onTelegramAuth = handleTelegramAuth;
 
-    const widgetContainer = document.getElementById("telegram-login-widget");
-    if (widgetContainer && !document.getElementById("telegram-login-script")) {
+    if (!document.getElementById("telegram-login-script")) {
       const script = document.createElement("script");
       script.id = "telegram-login-script";
       script.src = "https://telegram.org/js/telegram-widget.js?22";
       script.async = true;
-
-      // 2. MUST match your @username from BotFather exactly (no @)
       script.setAttribute("data-telegram-login", "second_test1_bot");
       script.setAttribute("data-size", "large");
       script.setAttribute("data-onauth", "onTelegramAuth(user)");
       script.setAttribute("data-request-access", "write");
 
-      widgetContainer.appendChild(script);
+      const widgetContainer = document.getElementById("telegram-login-widget");
+      if (widgetContainer) {
+        widgetContainer.innerHTML = "";
+        widgetContainer.appendChild(script);
+      }
     }
 
     return () => {
-      // Cleanup
-      const script = document.getElementById("telegram-login-script");
-      if (script) script.remove();
       delete window.onTelegramAuth;
     };
   }, []);
