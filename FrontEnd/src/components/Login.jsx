@@ -212,8 +212,11 @@ const Login = () => {
             </p>
           </div>
           {/* THE WIDGET CONTAINER */}
-          <div className="flex justify-center items-center w-full min-h-[60px] mt-2">
-            <div id="telegram-login-button"></div>
+          <div
+            id="telegram-login-button"
+            className="flex justify-center items-center w-full min-h-[60px] mt-2"
+          >
+            <div id="telegram-login-widget"></div>
           </div>
         </CardFooter>
       </Card>
