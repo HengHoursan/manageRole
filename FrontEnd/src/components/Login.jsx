@@ -44,38 +44,40 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // Telegram authentication handler
+  // 1. UPDATED: Added console logs to track the handshake
   const handleTelegramAuth = async (userData) => {
+    console.log("🔵 1. Received data from Telegram Widget:", userData);
+
     try {
       setIsLoading(true);
-
+      console.log("🔵 2. Sending data to backend...");
       const res = await telegramLoginUser(userData);
+      console.log("🟢 3. Backend Response:", res);
 
-      if (res) {
-        localStorage.setItem("token", res.token);
+      if (res && res.user) {
+        // FIXED: Accessing res.user.token to match your controller structure
+        localStorage.setItem("token", res.user.token);
         localStorage.setItem(
           "userData",
           JSON.stringify({
-            username: res.username,
-            role: res.role,
-            photo_url: res.photo_url,
+            username: res.user.username,
+            role: res.user.role,
+            photo_url: res.user.photo_url,
           }),
         );
 
         toast.success("Telegram login successful!");
-        navigate("/layout"); // ✅ correct for react-router
+        navigate("/layout");
       }
     } catch (error) {
-      console.error("Telegram auth error:", error);
+      console.error("🔴 Telegram auth error:", error);
       toast.error(error?.response?.data?.message || "Telegram login failed.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load Telegram widget + expose callback (order guaranteed)
   useEffect(() => {
-    // expose callback FIRST
     window.onTelegramAuth = handleTelegramAuth;
 
     if (!document.getElementById("telegram-login-script")) {
@@ -83,10 +85,10 @@ const Login = () => {
       script.id = "telegram-login-script";
       script.src = "https://telegram.org/js/telegram-widget.js?22";
       script.async = true;
-      // Change this:
-      script.setAttribute("data-telegram-login", "second_test1_bot"); // Added the underscore
-      // script.setAttribute("data-telegram-login", "second_test1_bot");
-      // TODO: replace with import.meta.env.VITE_TELEGRAM_BOT_NAME
+
+      // FIXED: Using your bot name without the underscore as requested
+      script.setAttribute("data-telegram-login", "second_test1_bot");
+
       script.setAttribute("data-size", "large");
       script.setAttribute("data-onauth", "onTelegramAuth(user)");
       script.setAttribute("data-request-access", "write");
