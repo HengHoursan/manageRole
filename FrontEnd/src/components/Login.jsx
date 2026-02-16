@@ -79,9 +79,7 @@ const Login = () => {
     };
   }, []);
   useEffect(() => {
-    if (!enviroment?.telegram_bot_name) return;
     if (document.getElementById("telegram-login-script")) return;
-
     const script = document.createElement("script");
     script.id = "telegram-login-script";
     script.src = "https://telegram.org/js/telegram-widget.js?22";
