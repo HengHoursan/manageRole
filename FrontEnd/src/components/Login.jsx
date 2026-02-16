@@ -36,7 +36,7 @@ const Login = () => {
     },
   });
 
-  // Redirect if already logged in (kept from previous changes)
+  // Redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -63,7 +63,7 @@ const Login = () => {
         );
 
         toast.success("Telegram login successful!");
-        router.push("/layout");
+        navigate("/layout"); // ✅ correct for react-router
       }
     } catch (error) {
       console.error("Telegram auth error:", error);
@@ -72,35 +72,36 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  // Load Telegram widget + expose callback (order guaranteed)
   useEffect(() => {
+    // expose callback FIRST
     window.onTelegramAuth = handleTelegramAuth;
+
+    if (!document.getElementById("telegram-login-script")) {
+      const script = document.createElement("script");
+      script.id = "telegram-login-script";
+      script.src = "https://telegram.org/js/telegram-widget.js?22";
+      script.async = true;
+      script.setAttribute("data-telegram-login", "second_test1_bot");
+      // TODO: replace with import.meta.env.VITE_TELEGRAM_BOT_NAME
+      script.setAttribute("data-size", "large");
+      script.setAttribute("data-onauth", "onTelegramAuth(user)");
+      script.setAttribute("data-request-access", "write");
+
+      const widgetContainer = document.getElementById("telegram-login-widget");
+      if (widgetContainer) {
+        widgetContainer.innerHTML = "";
+        widgetContainer.appendChild(script);
+      }
+    }
+
     return () => {
       delete window.onTelegramAuth;
     };
   }, []);
-  useEffect(() => {
-    if (document.getElementById("telegram-login-script")) return;
-    const script = document.createElement("script");
-    script.id = "telegram-login-script";
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.setAttribute("data-telegram-login", "second_test1_bot");
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
-    script.setAttribute("data-request-access", "write");
 
-    const widgetContainer = document.getElementById("telegram-login-widget");
-    if (widgetContainer) {
-      widgetContainer.innerHTML = "";
-      widgetContainer.appendChild(script);
-    }
-
-    return () => {
-      script.remove();
-    };
-  }, []);
-
-  // --- 3. STANDARD EMAIL/PASS LOGIN ---
+  // Standard email/password login
   const onLoginSubmit = async (formData) => {
     try {
       setIsLoading(true);
@@ -121,7 +122,7 @@ const Login = () => {
         navigate("/layout");
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed.");
+      toast.error(error?.response?.data?.message || "Login failed.");
     } finally {
       setIsLoading(false);
     }
@@ -138,6 +139,7 @@ const Login = () => {
             Enter your email below to login to your account
           </CardDescription>
         </CardHeader>
+
         <CardContent>
           <Form {...form}>
             <form
@@ -160,6 +162,7 @@ const Login = () => {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="password"
@@ -176,6 +179,7 @@ const Login = () => {
                   </FormItem>
                 )}
               />
+
               <div className="flex items-center space-x-2 mt-2">
                 <Checkbox
                   id="showPassword"
@@ -193,6 +197,7 @@ const Login = () => {
             </form>
           </Form>
         </CardContent>
+
         <CardFooter className="flex flex-col">
           <div className="text-center text-sm">
             Don't have an account?{" "}
@@ -209,12 +214,10 @@ const Login = () => {
               OR
             </p>
           </div>
-          {/* THE WIDGET CONTAINER */}
-          <div
-            id="telegram-login-button"
-            className="flex justify-center items-center w-full min-h-[60px] mt-2"
-          >
-            <div id="telegram-login-widget"></div>
+
+          {/* Telegram Widget */}
+          <div className="flex justify-center items-center w-full min-h-[60px] mt-2">
+            <div id="telegram-login-widget" />
           </div>
         </CardFooter>
       </Card>
