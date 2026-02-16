@@ -49,7 +49,7 @@ const Login = () => {
     try {
       setIsLoading(true);
 
-      const res = await siginWithTelegram(userData);
+      const res = await telegramLoginUser(userData);
 
       if (res) {
         localStorage.setItem("token", res.token);
