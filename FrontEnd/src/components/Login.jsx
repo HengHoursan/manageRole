@@ -44,63 +44,61 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // --- 1. HANDLE TELEGRAM CALLBACK DATA ---
-  useEffect(() => {
-    window.onTelegramAuth = async (user) => {
-      try {
-        setIsLoading(true);
-        const response = await telegramLoginUser(user);
-        const userData = response.user;
+  // Telegram authentication handler
+  const handleTelegramAuth = async (userData) => {
+    try {
+      setIsLoading(true);
 
-        if (userData) {
-          localStorage.setItem("token", userData.token);
-          localStorage.setItem(
-            "userData",
-            JSON.stringify({
-              username: userData.username,
-              role: userData.role,
-              photo_url: userData.photo_url,
-            }),
-          );
+      const res = await siginWithTelegram(userData);
 
-          toast.success("Telegram login successful!");
-          navigate("/layout");
-        }
-      } catch (error) {
-        console.error("Telegram login error:", error);
-        toast.error(error.response?.data?.message || "Telegram login failed.");
-      } finally {
-        setIsLoading(false);
+      if (res) {
+        localStorage.setItem("token", res.token);
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            username: res.username,
+            role: res.role,
+            photo_url: res.photo_url,
+          }),
+        );
+
+        toast.success("Telegram login successful!");
+        router.push("/layout");
       }
-    };
-
-    return () => {
-      delete window.onTelegramAuth; // Cleanup
-    };
-  }, [navigate]);
-
-  // --- 2. INJECT TELEGRAM SCRIPT ---
+    } catch (error) {
+      console.error("Telegram auth error:", error);
+      toast.error(error?.response?.data?.message || "Telegram login failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   useEffect(() => {
-    const container = document.getElementById("telegram-login-button");
-    if (!container) return;
-
-    // Clear any existing content to prevent button duplication
-    container.innerHTML = "";
+    window.handleTelegramAuth = handleTelegramAuth;
+    return () => {
+      delete window.handleTelegramAuth;
+    };
+  }, []);
+  useEffect(() => {
+    if (!enviroment?.telegram_bot_name) return;
+    if (document.getElementById("telegram-login-script")) return;
 
     const script = document.createElement("script");
+    script.id = "telegram-login-script";
     script.src = "https://telegram.org/js/telegram-widget.js?22";
     script.async = true;
-    script.setAttribute("data-telegram-login", "asdfasdfsres_bot"); // Updated bot name
+    script.setAttribute("data-telegram-login", enviroment.telegram_bot_name);
     script.setAttribute("data-size", "large");
-    script.setAttribute("data-radius", "8");
-    script.setAttribute("data-onauth", "onTelegramAuth(user)");
+    script.setAttribute("data-onauth", "handleTelegramAuth(user)");
     script.setAttribute("data-request-access", "write");
 
-    // This puts the button EXACTLY where you want it in the UI
-    container.appendChild(script);
+    const widgetContainer = document.getElementById("telegram-login-widget");
+    if (widgetContainer) {
+      widgetContainer.innerHTML = "";
+      widgetContainer.appendChild(script);
+    }
 
     return () => {
-      if (container) container.innerHTML = "";
+      script.remove();
     };
   }, []);
 
