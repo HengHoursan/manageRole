@@ -83,7 +83,9 @@ const Login = () => {
       script.id = "telegram-login-script";
       script.src = "https://telegram.org/js/telegram-widget.js?22";
       script.async = true;
-      script.setAttribute("data-telegram-login", "second_test1_bot");
+      // Change this:
+      script.setAttribute("data-telegram-login", "second_test_1_bot"); // Added the underscore
+      // script.setAttribute("data-telegram-login", "second_test1_bot");
       // TODO: replace with import.meta.env.VITE_TELEGRAM_BOT_NAME
       script.setAttribute("data-size", "large");
       script.setAttribute("data-onauth", "onTelegramAuth(user)");
