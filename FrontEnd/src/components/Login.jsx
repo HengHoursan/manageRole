@@ -43,7 +43,20 @@ const Login = () => {
       navigate("/layout");
     }
   }, [navigate]);
+  useEffect(() => {
+    // THIS WILL RUN IMMEDIATELY
+    console.log(
+      "REACT: Attempting to load Telegram Widget for @second_test1_bot",
+    );
 
+    window.onTelegramAuth = (user) => {
+      // THIS ONLY RUNS AFTER YOU CLICK 'CONFIRM' ON YOUR PHONE
+      console.log("TELEGRAM: Data received!", user);
+      handleTelegramAuth(user);
+    };
+
+    // ... rest of your script loading code
+  }, []);
   // Telegram authentication handler
   const handleTelegramAuth = async (userData) => {
     try {
