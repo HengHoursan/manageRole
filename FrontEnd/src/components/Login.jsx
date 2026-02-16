@@ -44,34 +44,22 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // 1. UPDATED: Added console logs to track the handshake
   const handleTelegramAuth = async (userData) => {
-    console.log("🔵 1. Received data from Telegram Widget:", userData);
-
+    console.log("🔵 Callback triggered! Received:", userData); // This will show now
     try {
       setIsLoading(true);
-      console.log("🔵 2. Sending data to backend...");
       const res = await telegramLoginUser(userData);
-      console.log("🟢 3. Backend Response:", res);
+      console.log("🟢 Server response:", res);
 
+      // FIX: res.user.token instead of res.token
       if (res && res.user) {
-        // FIXED: Accessing res.user.token to match your controller structure
         localStorage.setItem("token", res.user.token);
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            username: res.user.username,
-            role: res.user.role,
-            photo_url: res.user.photo_url,
-          }),
-        );
-
-        toast.success("Telegram login successful!");
+        localStorage.setItem("userData", JSON.stringify(res.user));
+        toast.success("Login successful!");
         navigate("/layout");
       }
     } catch (error) {
-      console.error("🔴 Telegram auth error:", error);
-      toast.error(error?.response?.data?.message || "Telegram login failed.");
+      console.error("🔴 Auth error:", error);
     } finally {
       setIsLoading(false);
     }
