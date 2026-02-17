@@ -43,20 +43,7 @@ const Login = () => {
       navigate("/layout");
     }
   }, [navigate]);
-  useEffect(() => {
-    // THIS WILL RUN IMMEDIATELY
-    console.log(
-      "REACT: Attempting to load Telegram Widget for @second_test1_bot",
-    );
 
-    window.onTelegramAuth = (user) => {
-      // THIS ONLY RUNS AFTER YOU CLICK 'CONFIRM' ON YOUR PHONE
-      console.log("TELEGRAM: Data received!", user);
-      handleTelegramAuth(user);
-    };
-
-    // ... rest of your script loading code
-  }, []);
   // Telegram authentication handler
   const handleTelegramAuth = async (userData) => {
     try {
@@ -64,14 +51,14 @@ const Login = () => {
 
       const res = await telegramLoginUser(userData);
 
-      if (res) {
-        localStorage.setItem("token", res.token);
+      if (res?.user) {
+        localStorage.setItem("token", res.user.token);
         localStorage.setItem(
           "userData",
           JSON.stringify({
-            username: res.username,
-            role: res.role,
-            photo_url: res.photo_url,
+            username: res.user.username,
+            role: res.user.role,
+            photo_url: res.user.photo_url,
           }),
         );
 
@@ -96,7 +83,7 @@ const Login = () => {
       script.id = "telegram-login-script";
       script.src = "https://telegram.org/js/telegram-widget.js?22";
       script.async = true;
-      script.setAttribute("data-telegram-login", "second_test1_bot");
+      script.setAttribute("data-telegram-login", import.meta.env.VITE_TELEGRAM_BOT_NAME);
       script.setAttribute("data-size", "large");
       script.setAttribute("data-onauth", "onTelegramAuth(user)");
       script.setAttribute("data-request-access", "write");
