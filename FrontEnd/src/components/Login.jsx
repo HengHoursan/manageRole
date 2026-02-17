@@ -73,11 +73,32 @@ const Login = () => {
     }
   };
 
-  // Load Telegram widget + expose callback (order guaranteed)
+  // Handle Telegram redirect auth (check URL params on mount)
   useEffect(() => {
-    // expose callback FIRST
-    window.onTelegramAuth = handleTelegramAuth;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    const hash = params.get("hash");
 
+    if (id && hash) {
+      const telegramData = {
+        id: params.get("id"),
+        first_name: params.get("first_name"),
+        last_name: params.get("last_name"),
+        username: params.get("username"),
+        photo_url: params.get("photo_url"),
+        auth_date: params.get("auth_date"),
+        hash: params.get("hash"),
+      };
+
+      // Clean up URL so params don't persist
+      window.history.replaceState({}, "", window.location.pathname);
+
+      handleTelegramAuth(telegramData);
+    }
+  }, []);
+
+  // Load Telegram widget (redirect mode)
+  useEffect(() => {
     if (!document.getElementById("telegram-login-script")) {
       const script = document.createElement("script");
       script.id = "telegram-login-script";
@@ -88,7 +109,10 @@ const Login = () => {
         import.meta.env.VITE_TELEGRAM_BOT_NAME,
       );
       script.setAttribute("data-size", "large");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
+      script.setAttribute(
+        "data-auth-url",
+        window.location.origin + window.location.pathname,
+      );
       script.setAttribute("data-request-access", "write");
 
       const widgetContainer = document.getElementById("telegram-login-widget");
@@ -97,10 +121,6 @@ const Login = () => {
         widgetContainer.appendChild(script);
       }
     }
-
-    return () => {
-      delete window.onTelegramAuth;
-    };
   }, []);
 
   // Standard email/password login
