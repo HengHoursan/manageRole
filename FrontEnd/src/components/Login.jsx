@@ -102,8 +102,14 @@ const Login = () => {
       // 1. Get a deep link from the backend
       const { token, deepLink } = await initTelegramDeepLinkAuth();
 
-      // 2. Open Telegram deep link in a new tab
-      window.open(deepLink, "_blank");
+      // 2. Open Telegram via anchor click (works better on mobile)
+      const link = document.createElement("a");
+      link.href = deepLink;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
       // 3. Start polling for auth completion
       setTelegramStatus("polling");
