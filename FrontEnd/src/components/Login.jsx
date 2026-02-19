@@ -102,32 +102,36 @@ const Login = () => {
     }
   }, []);
 
-  // Load Telegram widget (callback mode - more reliable for SPAs)
+  // Load Telegram widget
   useEffect(() => {
-    // Set up global callback function for Telegram widget
+    // Also set up callback as fallback
     window.onTelegramAuth = (user) => {
       console.log("Telegram callback received:", user);
       handleTelegramAuth(user);
     };
 
-    if (!document.getElementById("telegram-login-script")) {
-      const script = document.createElement("script");
-      script.id = "telegram-login-script";
-      script.src = "https://telegram.org/js/telegram-widget.js?22";
-      script.async = true;
-      script.setAttribute(
-        "data-telegram-login",
-        import.meta.env.VITE_TELEGRAM_BOT_NAME,
-      );
-      script.setAttribute("data-size", "large");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
-      script.setAttribute("data-request-access", "write");
+    // Remove any existing widget to ensure fresh load
+    const existingScript = document.getElementById("telegram-login-script");
+    if (existingScript) {
+      existingScript.remove();
+    }
 
-      const widgetContainer = document.getElementById("telegram-login-widget");
-      if (widgetContainer) {
-        widgetContainer.innerHTML = "";
-        widgetContainer.appendChild(script);
-      }
+    const script = document.createElement("script");
+    script.id = "telegram-login-script";
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.async = true;
+    script.setAttribute(
+      "data-telegram-login",
+      import.meta.env.VITE_TELEGRAM_BOT_NAME,
+    );
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-auth-url", window.location.origin + "/");
+    // Note: removed data-request-access="write" to simplify auth flow
+
+    const widgetContainer = document.getElementById("telegram-login-widget");
+    if (widgetContainer) {
+      widgetContainer.innerHTML = "";
+      widgetContainer.appendChild(script);
     }
 
     return () => {
