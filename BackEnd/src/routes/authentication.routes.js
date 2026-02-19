@@ -15,4 +15,10 @@ router.post("/telegram-login", authenicationController.telegramLogin);
 router.get("/telegram-init", authenicationController.telegramInit);
 router.get("/telegram-status/:token", authenicationController.telegramStatus);
 
+// telegram mini app login route
+router.post(
+  "/telegram-webapp-login",
+  authenicationController.telegramWebAppLogin,
+);
+
 module.exports = router;

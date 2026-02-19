@@ -24,6 +24,7 @@ import {
   loginUser,
   initTelegramDeepLinkAuth,
   checkTelegramDeepLinkStatus,
+  telegramWebAppLogin,
 } from "../api/authAction";
 import { toast } from "sonner";
 import Loader from "./Loader";
@@ -47,6 +48,39 @@ const Login = () => {
     const token = localStorage.getItem("token");
     if (token) {
       navigate("/layout");
+    }
+  }, [navigate]);
+
+  // Auto-login when running inside Telegram Mini App
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg && tg.initData) {
+      console.log("Running inside Telegram Mini App, auto-logging in...");
+      tg.ready();
+      tg.expand();
+
+      setIsLoading(true);
+      telegramWebAppLogin(tg.initData)
+        .then((res) => {
+          if (res?.user) {
+            localStorage.setItem("token", res.user.token);
+            localStorage.setItem(
+              "userData",
+              JSON.stringify({
+                username: res.user.username,
+                role: res.user.role,
+                photo_url: res.user.photo_url,
+              }),
+            );
+            toast.success("Welcome from Telegram!");
+            navigate("/layout");
+          }
+        })
+        .catch((error) => {
+          console.error("Mini App auto-login failed:", error);
+          toast.error("Auto-login failed. Please use the button below.");
+        })
+        .finally(() => setIsLoading(false));
     }
   }, [navigate]);
 

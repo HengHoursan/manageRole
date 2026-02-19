@@ -64,3 +64,19 @@ export const checkTelegramDeepLinkStatus = async (token) => {
     throw error;
   }
 };
+
+// Mini App: auto-login using Telegram WebApp initData
+export const telegramWebAppLogin = async (initData) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/api/auth/telegram-webapp-login`,
+      {
+        initData,
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error with Mini App login:", error);
+    throw error;
+  }
+};
