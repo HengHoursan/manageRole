@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import {
   loginUser,
+  telegramLoginUser,
   initTelegramDeepLinkAuth,
   checkTelegramDeepLinkStatus,
   telegramWebAppLogin,
@@ -91,6 +92,64 @@ const Login = () => {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
       }
+    };
+  }, []);
+
+  // Telegram Widget auth handler
+  const handleWidgetAuth = async (userData) => {
+    console.log("[Widget] Auth data received:", userData);
+    try {
+      setIsLoading(true);
+      const res = await telegramLoginUser(userData);
+      if (res?.user) {
+        localStorage.setItem("token", res.user.token);
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            username: res.user.username,
+            role: res.user.role,
+            photo_url: res.user.photo_url,
+          }),
+        );
+        toast.success("Telegram login successful!");
+        navigate("/layout");
+      }
+    } catch (error) {
+      console.error("[Widget] Auth error:", error);
+      toast.error(error?.response?.data?.message || "Telegram login failed.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load Telegram Login Widget (callback mode)
+  useEffect(() => {
+    window.onTelegramAuth = (user) => {
+      console.log("[Widget] onTelegramAuth callback fired:", user);
+      handleWidgetAuth(user);
+    };
+
+    const widgetContainer = document.getElementById("telegram-login-widget");
+    if (widgetContainer) {
+      widgetContainer.innerHTML = "";
+      const script = document.createElement("script");
+      script.src = "https://telegram.org/js/telegram-widget.js?22";
+      script.async = true;
+      script.setAttribute(
+        "data-telegram-login",
+        import.meta.env.VITE_TELEGRAM_BOT_NAME,
+      );
+      script.setAttribute("data-size", "large");
+      script.setAttribute("data-onauth", "onTelegramAuth(user)");
+      script.setAttribute("data-radius", "8");
+      script.onload = () => console.log("[Widget] Script loaded successfully");
+      script.onerror = (e) =>
+        console.error("[Widget] Script failed to load:", e);
+      widgetContainer.appendChild(script);
+    }
+
+    return () => {
+      delete window.onTelegramAuth;
     };
   }, []);
 
@@ -276,24 +335,34 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Telegram Deep Link Login Button */}
+          {/* Telegram Login Widget */}
+          <div className="flex justify-center items-center w-full min-h-[50px]">
+            <div id="telegram-login-widget" />
+          </div>
+
+          <div className="w-full my-3 flex items-center before:flex-1 before:border-t before:border-neutral-200 after:flex-1 after:border-t after:border-neutral-200">
+            <p className="mx-4 text-center text-xs text-neutral-400">or</p>
+          </div>
+
+          {/* Telegram Deep Link Login (fallback) */}
           <div className="flex flex-col items-center w-full gap-2">
             {telegramStatus === "" && (
               <Button
                 type="button"
-                className="w-full text-white bg-[#2AABEE] hover:bg-[#229ED9] flex items-center justify-center gap-2"
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 text-[#2AABEE] border-[#2AABEE] hover:bg-[#2AABEE]/10"
                 onClick={handleTelegramDeepLink}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
-                  fill="white"
+                  fill="currentColor"
                 >
                   <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
                 </svg>
-                Log in with Telegram
+                Log in via Bot (alternative)
               </Button>
             )}
 
@@ -305,15 +374,6 @@ const Login = () => {
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium h-10 px-4 py-2 text-white bg-[#2AABEE] hover:bg-[#229ED9] transition-colors"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="white"
-                  >
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                  </svg>
                   👉 Tap to Open Telegram
                 </a>
                 <p className="text-xs text-neutral-500 text-center">
