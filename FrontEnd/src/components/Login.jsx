@@ -79,6 +79,9 @@ const Login = () => {
     const id = params.get("id");
     const hash = params.get("hash");
 
+    console.log("Telegram redirect check - URL:", window.location.href);
+    console.log("Telegram redirect check - id:", id, "hash:", hash);
+
     if (id && hash) {
       const telegramData = {
         id: params.get("id"),
@@ -89,6 +92,8 @@ const Login = () => {
         auth_date: params.get("auth_date"),
         hash: params.get("hash"),
       };
+
+      console.log("Telegram auth data:", telegramData);
 
       // Clean up URL so params don't persist
       window.history.replaceState({}, "", window.location.pathname);
