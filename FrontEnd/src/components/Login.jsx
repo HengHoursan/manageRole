@@ -33,7 +33,8 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [telegramStatus, setTelegramStatus] = useState(""); // "", "waiting", "polling"
+  const [telegramStatus, setTelegramStatus] = useState(""); // "", "waiting", "ready", "polling"
+  const [deepLinkUrl, setDeepLinkUrl] = useState("");
   const pollingRef = useRef(null);
 
   const form = useForm({
@@ -93,39 +94,29 @@ const Login = () => {
     };
   }, []);
 
-  // Handle Telegram deep link login
+  // Step 1: Fetch deep link from backend
   const handleTelegramDeepLink = async () => {
     try {
       setIsLoading(true);
       setTelegramStatus("waiting");
 
-      // 1. Get a deep link from the backend
       const { token, deepLink } = await initTelegramDeepLinkAuth();
 
-      // 2. Open Telegram via anchor click (works better on mobile)
-      const link = document.createElement("a");
-      link.href = deepLink;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // 3. Start polling for auth completion
-      setTelegramStatus("polling");
+      setDeepLinkUrl(deepLink);
+      setTelegramStatus("ready");
       setIsLoading(false);
 
+      // Start polling immediately (user will tap the link next)
       pollingRef.current = setInterval(async () => {
         try {
           const result = await checkTelegramDeepLinkStatus(token);
 
           if (result.completed) {
-            // Stop polling
             clearInterval(pollingRef.current);
             pollingRef.current = null;
             setTelegramStatus("");
+            setDeepLinkUrl("");
 
-            // Store auth data
             localStorage.setItem("token", result.user.token);
             localStorage.setItem(
               "userData",
@@ -140,23 +131,24 @@ const Login = () => {
             navigate("/layout");
           }
         } catch (error) {
-          // 404 means session expired
           if (error?.response?.status === 404) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
             setTelegramStatus("");
+            setDeepLinkUrl("");
             toast.error("Login session expired. Please try again.");
           }
         }
-      }, 2000); // Poll every 2 seconds
+      }, 2000);
 
-      // Auto-stop polling after 5 minutes
+      // Auto-stop after 5 minutes
       setTimeout(
         () => {
           if (pollingRef.current) {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
             setTelegramStatus("");
+            setDeepLinkUrl("");
             toast.error("Login timed out. Please try again.");
           }
         },
@@ -286,30 +278,48 @@ const Login = () => {
 
           {/* Telegram Deep Link Login Button */}
           <div className="flex flex-col items-center w-full gap-2">
-            <Button
-              type="button"
-              className="w-full text-white bg-[#2AABEE] hover:bg-[#229ED9] flex items-center justify-center gap-2"
-              onClick={handleTelegramDeepLink}
-              disabled={telegramStatus === "polling"}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="white"
+            {telegramStatus === "" && (
+              <Button
+                type="button"
+                className="w-full text-white bg-[#2AABEE] hover:bg-[#229ED9] flex items-center justify-center gap-2"
+                onClick={handleTelegramDeepLink}
               >
-                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-              </svg>
-              {telegramStatus === "polling"
-                ? "Waiting for confirmation..."
-                : "Log in with Telegram"}
-            </Button>
-            {telegramStatus === "polling" && (
-              <p className="text-xs text-neutral-500 text-center">
-                Open Telegram and press <strong>Start</strong> on the bot, then
-                come back here
-              </p>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="white"
+                >
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                </svg>
+                Log in with Telegram
+              </Button>
+            )}
+
+            {telegramStatus === "ready" && (
+              <>
+                <a
+                  href={deepLinkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium h-10 px-4 py-2 text-white bg-[#2AABEE] hover:bg-[#229ED9] transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="white"
+                  >
+                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                  </svg>
+                  👉 Tap to Open Telegram
+                </a>
+                <p className="text-xs text-neutral-500 text-center">
+                  Press <strong>Start</strong> on the bot, then come back here
+                </p>
+              </>
             )}
           </div>
         </CardFooter>
