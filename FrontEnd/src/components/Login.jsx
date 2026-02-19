@@ -102,8 +102,14 @@ const Login = () => {
     }
   }, []);
 
-  // Load Telegram widget (redirect mode)
+  // Load Telegram widget (callback mode - more reliable for SPAs)
   useEffect(() => {
+    // Set up global callback function for Telegram widget
+    window.onTelegramAuth = (user) => {
+      console.log("Telegram callback received:", user);
+      handleTelegramAuth(user);
+    };
+
     if (!document.getElementById("telegram-login-script")) {
       const script = document.createElement("script");
       script.id = "telegram-login-script";
@@ -114,10 +120,7 @@ const Login = () => {
         import.meta.env.VITE_TELEGRAM_BOT_NAME,
       );
       script.setAttribute("data-size", "large");
-      script.setAttribute(
-        "data-auth-url",
-        window.location.origin + window.location.pathname,
-      );
+      script.setAttribute("data-onauth", "onTelegramAuth(user)");
       script.setAttribute("data-request-access", "write");
 
       const widgetContainer = document.getElementById("telegram-login-widget");
@@ -126,6 +129,10 @@ const Login = () => {
         widgetContainer.appendChild(script);
       }
     }
+
+    return () => {
+      delete window.onTelegramAuth;
+    };
   }, []);
 
   // Standard email/password login
