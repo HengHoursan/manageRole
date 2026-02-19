@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import {
   Card,
@@ -20,7 +20,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { loginUser, telegramLoginUser } from "../api/authAction";
+import {
+  loginUser,
+  initTelegramDeepLinkAuth,
+  checkTelegramDeepLinkStatus,
+} from "../api/authAction";
 import { toast } from "sonner";
 import Loader from "./Loader";
 
@@ -28,6 +32,8 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState(""); // "", "waiting", "polling"
+  const pollingRef = useRef(null);
 
   const form = useForm({
     defaultValues: {
@@ -44,100 +50,85 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // Telegram authentication handler
-  const handleTelegramAuth = async (userData) => {
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    };
+  }, []);
+
+  // Handle Telegram deep link login
+  const handleTelegramDeepLink = async () => {
     try {
       setIsLoading(true);
+      setTelegramStatus("waiting");
 
-      const res = await telegramLoginUser(userData);
+      // 1. Get a deep link from the backend
+      const { token, deepLink } = await initTelegramDeepLinkAuth();
 
-      if (res?.user) {
-        localStorage.setItem("token", res.user.token);
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            username: res.user.username,
-            role: res.user.role,
-            photo_url: res.user.photo_url,
-          }),
-        );
+      // 2. Open Telegram deep link in a new tab
+      window.open(deepLink, "_blank");
 
-        toast.success("Telegram login successful!");
-        navigate("/layout"); // ✅ correct for react-router
-      }
-    } catch (error) {
-      console.error("Telegram auth error:", error);
-      toast.error(error?.response?.data?.message || "Telegram login failed.");
-    } finally {
+      // 3. Start polling for auth completion
+      setTelegramStatus("polling");
       setIsLoading(false);
+
+      pollingRef.current = setInterval(async () => {
+        try {
+          const result = await checkTelegramDeepLinkStatus(token);
+
+          if (result.completed) {
+            // Stop polling
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setTelegramStatus("");
+
+            // Store auth data
+            localStorage.setItem("token", result.user.token);
+            localStorage.setItem(
+              "userData",
+              JSON.stringify({
+                username: result.user.username,
+                role: result.user.role,
+                photo_url: result.user.photo_url,
+              }),
+            );
+
+            toast.success("Telegram login successful!");
+            navigate("/layout");
+          }
+        } catch (error) {
+          // 404 means session expired
+          if (error?.response?.status === 404) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setTelegramStatus("");
+            toast.error("Login session expired. Please try again.");
+          }
+        }
+      }, 2000); // Poll every 2 seconds
+
+      // Auto-stop polling after 5 minutes
+      setTimeout(
+        () => {
+          if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+            setTelegramStatus("");
+            toast.error("Login timed out. Please try again.");
+          }
+        },
+        5 * 60 * 1000,
+      );
+    } catch (error) {
+      console.error("Telegram deep link error:", error);
+      toast.error("Failed to start Telegram login. Please try again.");
+      setIsLoading(false);
+      setTelegramStatus("");
     }
   };
-
-  // Handle Telegram redirect auth (check URL params on mount)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
-    const hash = params.get("hash");
-
-    console.log("Telegram redirect check - URL:", window.location.href);
-    console.log("Telegram redirect check - id:", id, "hash:", hash);
-
-    if (id && hash) {
-      const telegramData = {
-        id: params.get("id"),
-        first_name: params.get("first_name"),
-        last_name: params.get("last_name"),
-        username: params.get("username"),
-        photo_url: params.get("photo_url"),
-        auth_date: params.get("auth_date"),
-        hash: params.get("hash"),
-      };
-
-      console.log("Telegram auth data:", telegramData);
-
-      // Clean up URL so params don't persist
-      window.history.replaceState({}, "", window.location.pathname);
-
-      handleTelegramAuth(telegramData);
-    }
-  }, []);
-
-  // Load Telegram widget
-  useEffect(() => {
-    // Also set up callback as fallback
-    window.onTelegramAuth = (user) => {
-      console.log("Telegram callback received:", user);
-      handleTelegramAuth(user);
-    };
-
-    // Remove any existing widget to ensure fresh load
-    const existingScript = document.getElementById("telegram-login-script");
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    const script = document.createElement("script");
-    script.id = "telegram-login-script";
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.setAttribute(
-      "data-telegram-login",
-      import.meta.env.VITE_TELEGRAM_BOT_NAME,
-    );
-    script.setAttribute("data-size", "large");
-    script.setAttribute("data-auth-url", window.location.origin + "/");
-    // Note: removed data-request-access="write" to simplify auth flow
-
-    const widgetContainer = document.getElementById("telegram-login-widget");
-    if (widgetContainer) {
-      widgetContainer.innerHTML = "";
-      widgetContainer.appendChild(script);
-    }
-
-    return () => {
-      delete window.onTelegramAuth;
-    };
-  }, []);
 
   // Standard email/password login
   const onLoginSubmit = async (formData) => {
@@ -253,9 +244,33 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Telegram Widget */}
-          <div className="flex justify-center items-center w-full min-h-[60px] mt-2">
-            <div id="telegram-login-widget" />
+          {/* Telegram Deep Link Login Button */}
+          <div className="flex flex-col items-center w-full gap-2">
+            <Button
+              type="button"
+              className="w-full text-white bg-[#2AABEE] hover:bg-[#229ED9] flex items-center justify-center gap-2"
+              onClick={handleTelegramDeepLink}
+              disabled={telegramStatus === "polling"}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="white"
+              >
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+              </svg>
+              {telegramStatus === "polling"
+                ? "Waiting for confirmation..."
+                : "Log in with Telegram"}
+            </Button>
+            {telegramStatus === "polling" && (
+              <p className="text-xs text-neutral-500 text-center">
+                Open Telegram and press <strong>Start</strong> on the bot, then
+                come back here
+              </p>
+            )}
           </div>
         </CardFooter>
       </Card>

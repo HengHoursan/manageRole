@@ -28,7 +28,10 @@ export const loginUser = async (credentials) => {
 
 export const telegramLoginUser = async (telegramData) => {
   try {
-    const response = await axios.post(`${API_URL}/api/auth/telegram-login`, telegramData);
+    const response = await axios.post(
+      `${API_URL}/api/auth/telegram-login`,
+      telegramData,
+    );
     const { data } = response;
     console.log("Telegram user logged in successfully:", data);
     return data;
@@ -38,3 +41,26 @@ export const telegramLoginUser = async (telegramData) => {
   }
 };
 
+// Deep link auth: initialize a session and get the bot deep link
+export const initTelegramDeepLinkAuth = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/api/auth/telegram-init`);
+    return response.data;
+  } catch (error) {
+    console.error("Error initializing Telegram auth:", error);
+    throw error;
+  }
+};
+
+// Deep link auth: check if the user has completed auth in Telegram
+export const checkTelegramDeepLinkStatus = async (token) => {
+  try {
+    const response = await axios.get(
+      `${API_URL}/api/auth/telegram-status/${token}`,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error checking Telegram auth status:", error);
+    throw error;
+  }
+};

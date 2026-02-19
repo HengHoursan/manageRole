@@ -5,11 +5,15 @@ const cors = require("cors");
 const authenticationRoutes = require("./src/routes/authentication.routes");
 const productCategoryRoutes = require("./src/routes/productCategory.routes");
 const productRoutes = require("./src/routes/product.routes");
+const telegramBot = require("./src/services/telegramBot");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 // Connect to MongoDB
 mongoConnection();
+
+// Initialize Telegram bot
+telegramBot.initBot();
 
 // Middleware
 app.use(express.json());
