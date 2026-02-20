@@ -20,11 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import {
-  loginUser,
-  telegramLoginUser,
-  telegramWebAppLogin,
-} from "../api/authAction";
+import { loginUser, telegramLoginUser } from "../api/authAction";
 import { toast } from "sonner";
 import Loader from "./Loader";
 
@@ -32,8 +28,6 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isWebApp, setIsWebApp] = useState(false);
-  const [webappData, setWebappData] = useState(null);
 
   const form = useForm({
     defaultValues: {
@@ -49,46 +43,6 @@ const Login = () => {
       navigate("/layout");
     }
   }, [navigate]);
-
-  // Detect Telegram Mini App environment
-  useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg && tg.initData) {
-      console.log("Running inside Telegram Mini App");
-      tg.ready();
-      tg.expand();
-      setIsWebApp(true);
-      setWebappData(tg.initData);
-    }
-  }, []);
-
-  // Manual login handler for WebApp
-  const handleWebAppLogin = async () => {
-    if (!webappData) return;
-
-    try {
-      setIsLoading(true);
-      const res = await telegramWebAppLogin(webappData);
-      if (res?.user) {
-        localStorage.setItem("token", res.user.token);
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            username: res.user.username,
-            role: res.user.role,
-            photo_url: res.user.photo_url,
-          }),
-        );
-        toast.success("Welcome from Telegram!");
-        navigate("/layout");
-      }
-    } catch (error) {
-      console.error("WebApp login failed:", error);
-      toast.error("Login failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   // Telegram Widget auth handler
   const handleWidgetAuth = async (userData) => {
@@ -262,27 +216,9 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Telegram Login Selection */}
+          {/* Telegram Login Widget */}
           <div className="flex justify-center items-center w-full min-h-[50px]">
-            {isWebApp ? (
-              <Button
-                onClick={handleWebAppLogin}
-                className="w-full bg-[#2AABEE] hover:bg-[#229ED9] text-white flex items-center justify-center gap-2"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.891 8.11l-1.92 9.049c-.145.639-.523.797-1.059.497l-2.92-2.152-1.41 1.355c-.156.156-.285.285-.586.285l.209-2.969 5.404-4.881c.235-.209-.052-.324-.366-.117l-6.68 4.204-2.872-.899c-.624-.195-.636-.624.13-.923l11.229-4.329c.52-.189.974.124.841.831z" />
-                </svg>
-                Enter App
-              </Button>
-            ) : (
-              <div id="telegram-login-widget" />
-            )}
+            <div id="telegram-login-widget" />
           </div>
         </CardFooter>
       </Card>
