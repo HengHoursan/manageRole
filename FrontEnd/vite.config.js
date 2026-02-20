@@ -12,7 +12,12 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ["janette-semiexposed-carline.ngrok-free.dev"],
+    allowedHosts: [
+      "janette-semiexposed-carline.ngrok-free.dev",
+      "managerole-frontend.onrender.com",
+      "managerole.onrender.com",
+      "manage-role.vercel.app",
+    ],
   },
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
