@@ -11,10 +11,6 @@ router.post("/login", authenicationController.login);
 // telegram login route (widget-based - kept as fallback)
 router.post("/telegram-login", authenicationController.telegramLogin);
 
-// telegram deep link auth routes
-router.get("/telegram-init", authenicationController.telegramInit);
-router.get("/telegram-status/:token", authenicationController.telegramStatus);
-
 // telegram mini app login route
 router.post(
   "/telegram-webapp-login",

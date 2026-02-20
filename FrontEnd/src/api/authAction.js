@@ -41,30 +41,6 @@ export const telegramLoginUser = async (telegramData) => {
   }
 };
 
-// Deep link auth: initialize a session and get the bot deep link
-export const initTelegramDeepLinkAuth = async () => {
-  try {
-    const response = await axios.get(`${API_URL}/api/auth/telegram-init`);
-    return response.data;
-  } catch (error) {
-    console.error("Error initializing Telegram auth:", error);
-    throw error;
-  }
-};
-
-// Deep link auth: check if the user has completed auth in Telegram
-export const checkTelegramDeepLinkStatus = async (token) => {
-  try {
-    const response = await axios.get(
-      `${API_URL}/api/auth/telegram-status/${token}`,
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error checking Telegram auth status:", error);
-    throw error;
-  }
-};
-
 // Mini App: auto-login using Telegram WebApp initData
 export const telegramWebAppLogin = async (initData) => {
   try {

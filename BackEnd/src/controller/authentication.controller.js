@@ -9,7 +9,6 @@ const {
   validateTelegramAuth,
   isValidTelegramAuthDate,
 } = require("../utils/telegram");
-const telegramBot = require("../services/telegramBot");
 
 exports.register = async (req, res) => {
   try {
@@ -95,6 +94,8 @@ exports.telegramLogin = async (req, res) => {
       photo_url,
     } = req.body;
 
+    console.log("[Auth Controller] Received Telegram Login Request:", req.body);
+
     // 1. Validate required Telegram auth data
     if (!auth_date || !hash || !provider_id) {
       return res
@@ -158,84 +159,6 @@ exports.telegramLogin = async (req, res) => {
     });
   } catch (error) {
     console.error("Error during Telegram login:", error.message);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Generate a deep link for Telegram bot login
-exports.telegramInit = async (req, res) => {
-  try {
-    const { token, deepLink } = telegramBot.createAuthSession();
-    res.status(200).json({ token, deepLink });
-  } catch (error) {
-    console.error("Error creating Telegram auth session:", error.message);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Check if a Telegram bot auth session is completed
-exports.telegramStatus = async (req, res) => {
-  try {
-    const { token } = req.params;
-    const session = telegramBot.getAuthSession(token);
-
-    if (!session) {
-      return res.status(404).json({ message: "Session not found or expired." });
-    }
-
-    if (session.status !== "completed") {
-      return res.status(200).json({ completed: false });
-    }
-
-    const {
-      id: provider_id,
-      first_name,
-      last_name,
-      username,
-      photo_url,
-    } = session.userData;
-
-    // Find or create user (same logic as telegramLogin)
-    let user = await User.findOne({
-      provider: PROVIDERS.TELEGRAM,
-      provider_id,
-    });
-
-    if (!user) {
-      const newUsername =
-        username ||
-        `${first_name || "telegram"}${last_name ? `_${last_name}` : ""}_${provider_id}`;
-      user = new User({
-        username: newUsername,
-        provider: PROVIDERS.TELEGRAM,
-        provider_id: provider_id,
-        photo_url: photo_url || undefined,
-        role: "Admin",
-        email: `${newUsername}@telegram.com`,
-      });
-      await user.save();
-    }
-
-    const jwtToken = jwt.sign(
-      { id: user._id, role: user.role },
-      config.jwtSecret,
-      { expiresIn: "5h" },
-    );
-
-    // Clean up the session
-    telegramBot.removeAuthSession(token);
-
-    res.status(200).json({
-      completed: true,
-      user: {
-        username: user.username,
-        role: user.role,
-        photo_url: user.photo_url,
-        token: jwtToken,
-      },
-    });
-  } catch (error) {
-    console.error("Error checking Telegram auth status:", error.message);
     res.status(500).json({ message: error.message });
   }
 };

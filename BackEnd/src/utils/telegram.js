@@ -8,6 +8,12 @@ const config = require("../config/environment");
  */
 const validateTelegramAuth = (userData) => {
   const { hash, ...rest } = userData;
+  console.log("[Telegram Utils] Validating auth data:", { hash, rest });
+
+  if (!config.telegram.botToken) {
+    console.error("[Telegram Utils] Missing Bot Token in config!");
+    return false;
+  }
 
   const secretKey = crypto
     .createHash("sha256")
@@ -19,12 +25,20 @@ const validateTelegramAuth = (userData) => {
     .map((key) => `${key}=${String(rest[key])}`)
     .join("\n");
 
+  console.log("[Telegram Utils] Data check string:\n", dataCheckString);
+
   const hmac = crypto
     .createHmac("sha256", secretKey)
     .update(dataCheckString)
     .digest("hex");
 
-  return hmac === hash.toLowerCase(); // Ensure both are lowercase
+  console.log("[Telegram Utils] Computed HMAC:", hmac);
+  console.log("[Telegram Utils] Received Hash:", hash);
+
+  const isValid = hmac === hash.toLowerCase();
+  console.log("[Telegram Utils] Validation result:", isValid);
+
+  return isValid;
 };
 
 /**
