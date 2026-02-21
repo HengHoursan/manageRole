@@ -42,10 +42,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    phone_number: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 userSchema.methods.toJSON = function () {
   const { __v, _id, ...Object } = this.toObject();

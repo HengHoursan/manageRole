@@ -166,7 +166,7 @@ exports.telegramLogin = async (req, res) => {
 // Telegram Mini App login — verify initData and auto-login
 exports.telegramWebAppLogin = async (req, res) => {
   try {
-    const { initData } = req.body;
+    const { initData, phone_number } = req.body;
 
     if (!initData) {
       return res.status(400).json({ message: "Missing initData." });
@@ -219,8 +219,15 @@ exports.telegramWebAppLogin = async (req, res) => {
         photo_url: userData.photo_url || undefined,
         role: "Admin",
         email: `${newUsername}@telegram.com`,
+        phone_number: phone_number || undefined,
       });
       await user.save();
+    } else {
+      // Update phone number if provided and not already set
+      if (phone_number && !user.phone_number) {
+        user.phone_number = phone_number;
+        await user.save();
+      }
     }
 
     const token = jwt.sign(

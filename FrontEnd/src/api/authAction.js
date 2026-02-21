@@ -42,12 +42,13 @@ export const telegramLoginUser = async (telegramData) => {
 };
 
 // Mini App: auto-login using Telegram WebApp initData
-export const telegramWebAppLogin = async (initData) => {
+export const telegramWebAppLogin = async (initData, phone_number) => {
   try {
     const response = await axios.post(
       `${API_URL}/api/auth/telegram-webapp-login`,
       {
         initData,
+        phone_number,
       },
     );
     return response.data;

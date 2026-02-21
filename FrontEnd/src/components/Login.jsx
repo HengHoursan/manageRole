@@ -56,98 +56,68 @@ const Login = () => {
     }
   }, [navigate]);
 
-  // Handle Native Mini App Login
+  // Handle Native Mini App Login with Phone Sharing
   const handleWebAppLogin = async () => {
     try {
       setIsLoading(true);
-      const initData = window.Telegram?.WebApp?.initData;
+      const tg = window.Telegram?.WebApp;
+      const initData = tg?.initData;
+
       if (!initData) {
-        toast.error("Telegram data not found.");
+        toast.error("Telegram data not found. Please open in Telegram.");
         return;
       }
 
-      console.log("[Mini App] Attempting seamless login...");
-      const res = await telegramWebAppLogin(initData);
+      console.log("[Mini App] Requesting contact...");
 
-      if (res?.user) {
-        localStorage.setItem("token", res.user.token);
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            username: res.user.username,
-            role: res.user.role,
-            photo_url: res.user.photo_url,
-          }),
-        );
-        toast.success("Welcome back!");
-        navigate("/layout");
-      }
+      // Request contact (phone number) from Telegram native client
+      tg.requestContact((callbackData) => {
+        if (callbackData?.status === "sent") {
+          const contactData = callbackData.response?.contact;
+          const phone_number = contactData?.phone_number;
+
+          console.log("[Mini App] Contact shared, logging in...");
+
+          // Proceed with login using initData and phone_number
+          telegramWebAppLogin(initData, phone_number)
+            .then((res) => {
+              if (res?.user) {
+                localStorage.setItem("token", res.user.token);
+                localStorage.setItem(
+                  "userData",
+                  JSON.stringify({
+                    username: res.user.username,
+                    role: res.user.role,
+                    photo_url: res.user.photo_url,
+                  }),
+                );
+                toast.success("Welcome back!");
+                navigate("/layout");
+              }
+            })
+            .catch((err) => {
+              console.error("[Mini App] Login request failed:", err);
+              toast.error("Login failed. Please try again.");
+            })
+            .finally(() => setIsLoading(false));
+        } else {
+          console.warn("[Mini App] Contact sharing was denied or failed.");
+          toast.error("Phone number is required to log in.");
+          setIsLoading(false);
+        }
+      });
     } catch (error) {
-      console.error("[Mini App] Login failed:", error);
-      toast.error("Auth failed. Please try again.");
-    } finally {
+      console.error("[Mini App] Login flow failed:", error);
+      toast.error("Something went wrong.");
       setIsLoading(false);
     }
   };
 
-  // Telegram Widget auth handler (for Browser/Desktop)
-  const handleWidgetAuth = async (userData) => {
-    console.log("[Widget] Auth data received from Telegram:", userData);
-    try {
-      setIsLoading(true);
-      const res = await telegramLoginUser(userData);
-      if (res?.user) {
-        localStorage.setItem("token", res.user.token);
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({
-            username: res.user.username,
-            role: res.user.role,
-            photo_url: res.user.photo_url,
-          }),
-        );
-        toast.success("Telegram login successful!");
-        navigate("/layout");
-      }
-    } catch (error) {
-      console.error("[Widget] Auth error:", error);
-      toast.error(error?.response?.data?.message || "Telegram login failed.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Load Telegram Login Widget (callback mode - ONLY for Browser)
+  // Skip widget loading to prevent browser redirects in Mini App
   useEffect(() => {
-    if (isWebApp) return; // Don't load widget in Mini App
-
-    window.onTelegramAuth = (user) => {
-      console.log("[Widget] onTelegramAuth callback fired:", user);
-      handleWidgetAuth(user);
-    };
-
-    const widgetContainer = document.getElementById("telegram-login-widget");
-    if (widgetContainer) {
-      widgetContainer.innerHTML = "";
-      const script = document.createElement("script");
-      script.src = "https://telegram.org/js/telegram-widget.js?22";
-      script.async = true;
-      script.setAttribute(
-        "data-telegram-login",
-        import.meta.env.VITE_TELEGRAM_BOT_NAME,
-      );
-      script.setAttribute("data-size", "large");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
-      script.setAttribute("data-radius", "8");
-      script.onload = () => console.log("[Widget] Script loaded successfully");
-      script.onerror = (e) =>
-        console.error("[Widget] Script failed to load:", e);
-      widgetContainer.appendChild(script);
-    }
-
-    return () => {
-      delete window.onTelegramAuth;
-    };
+    // We strictly use the WebApp SDK for Mini Apps
+    // For Desktop browsers, we could keep the widget, but for the most stable
+    // Mini App experience, we remove the external widget script entirely.
   }, [isWebApp]);
 
   // Standard email/password login
