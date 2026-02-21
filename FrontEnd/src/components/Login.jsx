@@ -79,6 +79,12 @@ const Login = () => {
           const contactData = eventData.response?.contact;
           const phone_number = contactData?.phone_number;
 
+          if (phone_number) {
+            toast.success(`Captured: ${phone_number}`);
+          } else {
+            toast.error("Phone number missing from Telegram response!");
+          }
+
           console.log("[Mini App] Contact shared, logging in...");
 
           telegramWebAppLogin(initData, phone_number)

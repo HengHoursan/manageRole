@@ -154,6 +154,7 @@ exports.telegramLogin = async (req, res) => {
         username: user.username,
         role: user.role,
         photo_url: user.photo_url,
+        phone_number: user.phone_number,
         token: token,
       },
     });
@@ -202,6 +203,11 @@ exports.telegramWebAppLogin = async (req, res) => {
     const userData = JSON.parse(params.get("user"));
     const provider_id = userData.id.toString();
 
+    console.log(`[Backend] Processing login for user: ${provider_id}`);
+    console.log(
+      `[Backend] Phone number in request: ${phone_number || "MISSING"}`,
+    );
+
     // Find or create user
     let user = await User.findOne({
       provider: PROVIDERS.TELEGRAM,
@@ -209,6 +215,7 @@ exports.telegramWebAppLogin = async (req, res) => {
     });
 
     if (!user) {
+      console.log("[Backend] Creating new user...");
       const newUsername =
         userData.username ||
         `${userData.first_name || "telegram"}${userData.last_name ? `_${userData.last_name}` : ""}_${provider_id}`;
@@ -225,8 +232,13 @@ exports.telegramWebAppLogin = async (req, res) => {
     } else {
       // Update phone number if provided
       if (phone_number) {
+        console.log(
+          `[Backend] Updating phone number for existing user: ${phone_number}`,
+        );
         user.phone_number = phone_number;
         await user.save();
+      } else {
+        console.log("[Backend] No phone number provided in request body.");
       }
     }
 
