@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
-import SidebarLayout from "../layouts/SidebarLayout";
 
 function isTokenExpired(token) {
   if (!token) return true;
@@ -12,7 +11,7 @@ function isTokenExpired(token) {
   }
 }
 
-const Protected = () => {
+const Protected = ({ children }) => {
   const token = localStorage.getItem("token");
   const expired = isTokenExpired(token);
 
@@ -27,7 +26,7 @@ const Protected = () => {
   }, []);
 
   if (token && !expired) {
-    return <SidebarLayout />;
+    return children;
   }
 
   localStorage.removeItem("token");
