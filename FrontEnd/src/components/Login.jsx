@@ -314,86 +314,80 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
 
-        {!isWebApp && (
-          <CardContent>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onLoginSubmit)}
-                className="space-y-5"
-              >
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="Enter your email"
-                          {...field}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
+        <CardContent>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onLoginSubmit)}
+              className="space-y-5"
+            >
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="Enter your email"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        {...field}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox
+                  id="showPassword"
+                  checked={showPassword}
+                  onCheckedChange={(checked) =>
+                    setShowPassword(Boolean(checked))
+                  }
                 />
+                <Label htmlFor="showPassword">Show Password</Label>
+              </div>
 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
-                          {...field}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex items-center space-x-2 mt-2">
-                  <Checkbox
-                    id="showPassword"
-                    checked={showPassword}
-                    onCheckedChange={(checked) =>
-                      setShowPassword(Boolean(checked))
-                    }
-                  />
-                  <Label htmlFor="showPassword">Show Password</Label>
-                </div>
-
-                <Button className="w-full text-white bg-black" type="submit">
-                  Login
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        )}
+              <Button className="w-full text-white bg-black" type="submit">
+                Login
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
 
         <CardFooter className="flex flex-col">
-          {!isWebApp && (
-            <>
-              <div className="text-center text-sm">
-                Don't have an account?{" "}
-                <span
-                  className="underline cursor-pointer font-medium"
-                  onClick={() => navigate("/register")}
-                >
-                  Register now
-                </span>
-              </div>
+          <div className="text-center text-sm">
+            Don't have an account?{" "}
+            <span
+              className="underline cursor-pointer font-medium"
+              onClick={() => navigate("/register")}
+            >
+              Register now
+            </span>
+          </div>
 
-              <div className="w-full my-6 flex items-center before:flex-1 before:border-t before:border-neutral-300 after:flex-1 after:border-t after:border-neutral-300">
-                <p className="mx-4 text-center font-semibold text-neutral-500 text-[10px]">
-                  OR
-                </p>
-              </div>
-            </>
-          )}
+          <div className="w-full my-6 flex items-center before:flex-1 before:border-t before:border-neutral-300 after:flex-1 after:border-t after:border-neutral-300">
+            <p className="mx-4 text-center font-semibold text-neutral-500 text-[10px]">
+              OR
+            </p>
+          </div>
 
           {/* Telegram Login Section */}
           <div className="flex justify-center items-center w-full min-h-[50px]">
