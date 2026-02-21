@@ -42,44 +42,39 @@ const Login = () => {
     },
   });
 
-  // Redirect if already logged in and handle detection/recovery
+  // CONCEPT: Environment Detection
+  // This effect runs on startup to check if we are inside Telegram.
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       navigate("/layout");
     }
 
-    // DEFINITIVE NATIVE DETECTION:
-    // If we are in Telegram, we MUST use the native flow to avoid redirects.
-    const enforceNativeFlow = () => {
+    // SIMPLE & ROBUST DETECTION:
+    // This is the "Easy Way" - it checks the UserAgent + URL signals immediately.
+    const detectIsTG = () => {
       const tg = window.Telegram?.WebApp;
-      const hasTGParams =
+      const isTG =
+        (tg && (tg.initData || tg.platform !== "unknown")) ||
         window.location.hash.includes("tgWebAppData") ||
-        window.location.search.includes("tgWebAppData");
+        window.location.search.includes("tgWebAppData") ||
+        /Telegram/i.test(navigator.userAgent);
 
-      // If the SDK is loaded or we see data signals, we are in a Mini App.
-      if ((tg?.platform && tg.platform !== "unknown") || hasTGParams) {
+      if (isTG) {
         setIsWebApp(true);
         sessionStorage.setItem("isWebApp", "true");
-
-        const user = tg?.initDataUnsafe?.user;
-        if (user?.first_name) {
-          setFirstName(user.first_name);
+        if (tg?.initDataUnsafe?.user?.first_name) {
+          setFirstName(tg.initDataUnsafe.user.first_name);
         }
-
         if (tg?.expand) tg.expand();
-        console.log("[Mini App] Enforcing native flow");
+        console.log("[Mini App] Detected via Simple Method");
       }
     };
 
-    enforceNativeFlow();
-    // Re-check frequently during the first 2 seconds to catch slow SDK init
-    const intervals = [200, 500, 1000, 2000].map((ms) =>
-      setTimeout(enforceNativeFlow, ms),
-    );
+    detectIsTG();
+    const fallbackTimer = setTimeout(detectIsTG, 1000);
 
     // ANTI-FREEZE & INTERACTION RECOVERY:
-    // This is CRITICAL for the Mini App to remain interactable after logout.
     const purgeLocks = () => {
       document.body.style.pointerEvents = "auto";
       document.body.style.overflow = "auto";
@@ -90,15 +85,13 @@ const Login = () => {
     };
 
     purgeLocks();
-    // Re-purge after a short delay to catch any late-initializing UI blocks
     setTimeout(purgeLocks, 500);
 
-    return () => {
-      intervals.forEach(clearTimeout);
-    };
+    return () => clearTimeout(fallbackTimer);
   }, [navigate]);
 
-  // Handle Native Mini App Login with Phone Sharing
+  // CONCEPT: Native Mini App Login
+  // This function tells Telegram to show the "Share Phone Number" popup.
   const handleWebAppLogin = async () => {
     try {
       setIsLoading(true);
@@ -204,7 +197,8 @@ const Login = () => {
     }
   };
 
-  // Telegram Widget auth handler (for Browser/Desktop)
+  // CONCEPT: Browser Widget Login
+  // Handler for users logging in via a PC browser using the Telegram Widget.
   const handleWidgetAuth = async (userData) => {
     console.log("[Widget] Auth data received from Telegram:", userData);
     try {
@@ -231,7 +225,8 @@ const Login = () => {
     }
   };
 
-  // Load Telegram Login Widget (callback mode - ONLY for Browser)
+  // CONCEPT: Widget Loading
+  // This script only loads the "Login with Telegram" button if we are NOT in a Mini App.
   useEffect(() => {
     if (isWebApp) return;
 
@@ -271,7 +266,8 @@ const Login = () => {
     };
   }, [isWebApp]);
 
-  // Standard email/password login
+  // CONCEPT: Manual Login
+  // Standard email and password login logic.
   const onLoginSubmit = async (formData) => {
     try {
       setIsLoading(true);
