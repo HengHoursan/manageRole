@@ -73,63 +73,83 @@ const Login = () => {
 
       // Define internal handler for the contact event
       const onContactRequested = (eventData) => {
-        console.log("[Mini App] contactRequested event fired:", eventData);
+        console.log("[Mini App] Raw Event Data:", eventData);
+
+        // Use browser alert because it's impossible to ignore and bypasses SDK UI issues
+        alert(
+          "DEBUG V3: Received Event Data:\n" +
+            JSON.stringify(eventData, null, 2),
+        );
 
         if (eventData?.status === "sent") {
-          const contactData = eventData.response?.contact;
-          const phone_number = contactData?.phone_number;
+          const contact =
+            eventData.response?.contact ||
+            eventData.contact ||
+            eventData.response ||
+            eventData;
+          const phone_number = contact?.phone_number || contact?.phone;
 
           if (phone_number) {
-            toast.success(`Captured: ${phone_number}`);
+            processCapture(phone_number);
           } else {
-            toast.error("Phone number missing from Telegram response!");
+            alert(
+              "DEBUG V3: Status 'sent' but NO phone found in data. Check the alert above.",
+            );
           }
-
-          console.log("[Mini App] Contact shared, logging in...");
-
-          telegramWebAppLogin(initData, phone_number)
-            .then((res) => {
-              if (res?.user) {
-                localStorage.setItem("token", res.user.token);
-                localStorage.setItem(
-                  "userData",
-                  JSON.stringify({
-                    username: res.user.username,
-                    role: res.user.role,
-                    photo_url: res.user.photo_url,
-                    phone_number: res.user.phone_number,
-                  }),
-                );
-                toast.success("Welcome back!");
-                navigate("/layout");
-              }
-            })
-            .catch((err) => {
-              console.error("[Mini App] Login request failed:", err);
-              toast.error("Server authentication failed.");
-            })
-            .finally(() => {
-              setIsLoading(false);
-              tg.offEvent("contactRequested", onContactRequested);
-            });
         } else {
           const status = eventData?.status || "unknown";
-          console.warn(`[Mini App] Contact sharing status: ${status}`);
-
-          if (status === "cancelled") {
-            toast.error("Login cancelled. Phone number is required.");
-          } else {
-            toast.error(`Phone sharing error: ${status}`);
+          if (status !== "unknown") {
+            alert(`DEBUG V3: Sharing status is: ${status}`);
+            setIsLoading(false);
+            tg.offEvent("contactRequested", onContactRequested);
           }
-
-          setIsLoading(false);
-          tg.offEvent("contactRequested", onContactRequested);
         }
       };
 
-      // Register listener and trigger request
+      const processCapture = (phone_number) => {
+        console.log("[Mini App] SUCCESS! Capturing number:", phone_number);
+        toast.success(`Captured: ${phone_number}`);
+
+        telegramWebAppLogin(initData, phone_number)
+          .then((res) => {
+            if (res?.user) {
+              localStorage.setItem("token", res.user.token);
+              localStorage.setItem(
+                "userData",
+                JSON.stringify({
+                  username: res.user.username,
+                  role: res.user.role,
+                  photo_url: res.user.photo_url,
+                  phone_number: res.user.phone_number,
+                }),
+              );
+              toast.success("Welcome back!");
+              navigate("/layout");
+            }
+          })
+          .catch((err) => {
+            console.error("[Mini App] Login request failed:", err);
+            toast.error("Server authentication failed.");
+          })
+          .finally(() => {
+            setIsLoading(false);
+            tg.offEvent("contactRequested", onContactRequested);
+          });
+      };
+
+      // TRIPLE CAPTURE: Try event, try callback, try everything.
       tg.onEvent("contactRequested", onContactRequested);
-      tg.requestContact();
+
+      // Some versions only fire the callback, some only fire the event. We do both.
+      tg.requestContact((callbackData) => {
+        console.log("[Mini App] Callback fired:", callbackData);
+        if (callbackData?.status === "sent") {
+          const num =
+            callbackData.response?.contact?.phone_number ||
+            callbackData.contact?.phone_number;
+          if (num) processCapture(num);
+        }
+      });
 
       // Fallback: If no event fires for 10 seconds, clear loading
       setTimeout(() => {
