@@ -52,25 +52,19 @@ const AppSidebar = () => {
     }
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
       setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Clear all local storage
       localStorage.clear();
 
-      // If inside Telegram Mini App, close it
-      const tg = window.Telegram?.WebApp;
-      if (tg && tg.initData) {
-        tg.close();
-        return;
-      }
+      toast.success("Logged out successfully");
 
+      // Always navigate to home/login
       navigate("/");
-      toast.success("Logged out successful!", {
-        description: "You have been successfully logged out.",
-      });
     } catch (error) {
-      console.error(error);
+      console.error("Logout failed:", error);
       toast.error("Logout failed.");
     } finally {
       setIsLoading(false);
