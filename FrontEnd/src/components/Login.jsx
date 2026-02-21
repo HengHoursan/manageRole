@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   Card,
@@ -20,7 +20,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { loginUser, telegramLoginUser } from "../api/authAction";
+import {
+  loginUser,
+  telegramLoginUser,
+  telegramWebAppLogin,
+} from "../api/authAction";
 import { toast } from "sonner";
 import Loader from "./Loader";
 
@@ -28,13 +32,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  const [isWebApp, setIsWebApp] = useState(false);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -42,9 +40,50 @@ const Login = () => {
     if (token) {
       navigate("/layout");
     }
+
+    // Detect if running in Telegram Mini App
+    if (window.Telegram?.WebApp?.initData) {
+      setIsWebApp(true);
+      console.log("[Mini App] telegram-webapp-sdk detected");
+      window.Telegram.WebApp.expand();
+    }
   }, [navigate]);
 
-  // Telegram Widget auth handler
+  // Handle Native Mini App Login
+  const handleWebAppLogin = async () => {
+    try {
+      setIsLoading(true);
+      const initData = window.Telegram?.WebApp?.initData;
+      if (!initData) {
+        toast.error("Telegram data not found.");
+        return;
+      }
+
+      console.log("[Mini App] Attempting seamless login...");
+      const res = await telegramWebAppLogin(initData);
+
+      if (res?.user) {
+        localStorage.setItem("token", res.user.token);
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            username: res.user.username,
+            role: res.user.role,
+            photo_url: res.user.photo_url,
+          }),
+        );
+        toast.success("Welcome back!");
+        navigate("/layout");
+      }
+    } catch (error) {
+      console.error("[Mini App] Login failed:", error);
+      toast.error("Auth failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Telegram Widget auth handler (for Browser/Desktop)
   const handleWidgetAuth = async (userData) => {
     console.log("[Widget] Auth data received from Telegram:", userData);
     try {
@@ -71,8 +110,10 @@ const Login = () => {
     }
   };
 
-  // Load Telegram Login Widget (callback mode)
+  // Load Telegram Login Widget (callback mode - ONLY for Browser)
   useEffect(() => {
+    if (isWebApp) return; // Don't load widget in Mini App
+
     window.onTelegramAuth = (user) => {
       console.log("[Widget] onTelegramAuth callback fired:", user);
       handleWidgetAuth(user);
@@ -100,7 +141,7 @@ const Login = () => {
     return () => {
       delete window.onTelegramAuth;
     };
-  }, []);
+  }, [isWebApp]);
 
   // Standard email/password login
   const onLoginSubmit = async (formData) => {
@@ -137,7 +178,9 @@ const Login = () => {
             Login to your account
           </CardTitle>
           <CardDescription className="text-center">
-            Enter your email below to login to your account
+            {isWebApp
+              ? "Continue with Telegram inside the app"
+              : "Enter your email below to login to your account"}
           </CardDescription>
         </CardHeader>
 
@@ -216,9 +259,30 @@ const Login = () => {
             </p>
           </div>
 
-          {/* Telegram Login Widget */}
+          {/* Telegram Login Section */}
           <div className="flex justify-center items-center w-full min-h-[50px]">
-            <div id="telegram-login-widget" />
+            {isWebApp ? (
+              <Button
+                onClick={handleWebAppLogin}
+                className="w-full bg-[#0088cc] hover:bg-[#0077b5] text-white font-medium flex items-center justify-center gap-2"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.64 8.8C16.49 10.38 15.84 14.19 15.51 15.96C15.37 16.71 15.09 16.96 14.82 16.99C14.23 17.04 13.78 16.6 13.21 16.23C12.31 15.64 11.81 15.28 10.93 14.71C9.92 14.04 10.58 13.68 11.16 13.08C11.3 12.92 13.9 10.55 13.95 10.33C13.96 10.3 13.96 10.21 13.91 10.16C13.85 10.11 13.77 10.13 13.71 10.14C13.62 10.16 12.22 11.08 9.51 12.92C9.11 13.19 8.75 13.32 8.43 13.31C8.07 13.3 7.39 13.11 6.88 12.94C6.26 12.74 5.76 12.63 5.8 12.29C5.82 12.11 6.07 11.93 6.54 11.75C9.37 10.52 11.23 9.71 12.11 9.35C14.63 8.3 15.15 8.12 15.49 8.12C15.56 8.12 15.73 8.14 15.85 8.24C15.95 8.32 15.98 8.44 15.99 8.52C16 8.58 16.01 8.71 16 8.8L16.64 8.8Z"
+                    fill="currentColor"
+                  />
+                </svg>
+                Log in as Telegram User
+              </Button>
+            ) : (
+              <div id="telegram-login-widget" />
+            )}
           </div>
         </CardFooter>
       </Card>
