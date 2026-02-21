@@ -223,8 +223,8 @@ exports.telegramWebAppLogin = async (req, res) => {
       });
       await user.save();
     } else {
-      // Update phone number if provided and not already set
-      if (phone_number && !user.phone_number) {
+      // Update phone number if provided
+      if (phone_number) {
         user.phone_number = phone_number;
         await user.save();
       }
