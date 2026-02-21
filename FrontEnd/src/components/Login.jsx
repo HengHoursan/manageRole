@@ -75,15 +75,10 @@ const Login = () => {
       const onContactRequested = (eventData) => {
         console.log("[Mini App] Raw Event Data:", eventData);
 
-        // Use browser alert because it's impossible to ignore and bypasses SDK UI issues
-        alert(
-          "DEBUG V3: Received Event Data:\n" +
-            JSON.stringify(eventData, null, 2),
-        );
-
         if (eventData?.status === "sent") {
           const contact =
             eventData.response?.contact ||
+            eventData.responseUnsafe?.contact ||
             eventData.contact ||
             eventData.response ||
             eventData;
@@ -92,25 +87,24 @@ const Login = () => {
           if (phone_number) {
             processCapture(phone_number);
           } else {
-            alert(
-              "DEBUG V3: Status 'sent' but NO phone found in data. Check the alert above.",
+            console.error(
+              "[Mini App] Phone number missing in data:",
+              eventData,
             );
+            toast.error("Failed to capture phone number.");
           }
-        } else {
-          const status = eventData?.status || "unknown";
-          if (status !== "unknown") {
-            alert(`DEBUG V3: Sharing status is: ${status}`);
-            setIsLoading(false);
-            tg.offEvent("contactRequested", onContactRequested);
-          }
+        } else if (eventData?.status === "cancelled") {
+          toast.error("Login cancelled. Phone number is required.");
+          setIsLoading(false);
+          tg.offEvent("contactRequested", onContactRequested);
         }
       };
 
       const processCapture = (phone_number) => {
-        console.log("[Mini App] SUCCESS! Capturing number:", phone_number);
-        toast.success(`Captured: ${phone_number}`);
+        // Format phone number: Replace international prefix (e.g., 855) with 0
+        const formattedPhone = phone_number.replace(/^\+?855/, "0");
 
-        telegramWebAppLogin(initData, phone_number)
+        telegramWebAppLogin(initData, formattedPhone)
           .then((res) => {
             if (res?.user) {
               localStorage.setItem("token", res.user.token);
@@ -142,7 +136,6 @@ const Login = () => {
 
       // Some versions only fire the callback, some only fire the event. We do both.
       tg.requestContact((callbackData) => {
-        console.log("[Mini App] Callback fired:", callbackData);
         if (callbackData?.status === "sent") {
           const num =
             callbackData.response?.contact?.phone_number ||
@@ -341,7 +334,7 @@ const Login = () => {
 
           <div className="w-full my-6 flex items-center before:flex-1 before:border-t before:border-neutral-300 after:flex-1 after:border-t after:border-neutral-300">
             <p className="mx-4 text-center font-semibold text-neutral-500 text-[10px]">
-              OR (V2 - NATIVE FLOW)
+              OR
             </p>
           </div>
 
