@@ -65,20 +65,22 @@ const Login = () => {
 
       if (!initData) {
         toast.error("Telegram data not found. Please open in Telegram.");
+        setIsLoading(false);
         return;
       }
 
       console.log("[Mini App] Requesting contact...");
 
-      // Request contact (phone number) from Telegram native client
-      tg.requestContact((callbackData) => {
-        if (callbackData?.status === "sent") {
-          const contactData = callbackData.response?.contact;
+      // Define internal handler for the contact event
+      const onContactRequested = (eventData) => {
+        console.log("[Mini App] contactRequested event fired:", eventData);
+
+        if (eventData?.status === "sent") {
+          const contactData = eventData.response?.contact;
           const phone_number = contactData?.phone_number;
 
           console.log("[Mini App] Contact shared, logging in...");
 
-          // Proceed with login using initData and phone_number
           telegramWebAppLogin(initData, phone_number)
             .then((res) => {
               if (res?.user) {
@@ -97,18 +99,45 @@ const Login = () => {
             })
             .catch((err) => {
               console.error("[Mini App] Login request failed:", err);
-              toast.error("Login failed. Please try again.");
+              toast.error("Server authentication failed.");
             })
-            .finally(() => setIsLoading(false));
+            .finally(() => {
+              setIsLoading(false);
+              tg.offEvent("contactRequested", onContactRequested);
+            });
         } else {
-          console.warn("[Mini App] Contact sharing was denied or failed.");
-          toast.error("Phone number is required to log in.");
+          const status = eventData?.status || "unknown";
+          console.warn(`[Mini App] Contact sharing status: ${status}`);
+
+          if (status === "cancelled") {
+            toast.error("Login cancelled. Phone number is required.");
+          } else {
+            toast.error(`Phone sharing error: ${status}`);
+          }
+
           setIsLoading(false);
+          tg.offEvent("contactRequested", onContactRequested);
         }
-      });
+      };
+
+      // Register listener and trigger request
+      tg.onEvent("contactRequested", onContactRequested);
+      tg.requestContact();
+
+      // Fallback: If no event fires for 10 seconds, clear loading
+      setTimeout(() => {
+        setIsLoading((loading) => {
+          if (loading) {
+            toast.error("Contact request timed out.");
+            tg.offEvent("contactRequested", onContactRequested);
+            return false;
+          }
+          return loading;
+        });
+      }, 10000);
     } catch (error) {
       console.error("[Mini App] Login flow failed:", error);
-      toast.error("Something went wrong.");
+      toast.error("Something went wrong with Telegram SDK.");
       setIsLoading(false);
     }
   };
