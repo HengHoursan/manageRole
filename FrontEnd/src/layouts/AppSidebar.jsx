@@ -39,7 +39,6 @@ const menuItems = [
 const AppSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState({ username: "", photo_url: "" });
 
   useEffect(() => {
@@ -53,22 +52,12 @@ const AppSidebar = () => {
   }, []);
 
   const handleLogout = () => {
-    try {
-      setIsLoading(true);
+    // Clear all local storage
+    localStorage.clear();
+    toast.success("Logged out successfully");
 
-      // Clear all local storage
-      localStorage.clear();
-
-      toast.success("Logged out successfully");
-
-      // Always navigate to home/login
-      navigate("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error("Logout failed.");
-    } finally {
-      setIsLoading(false);
-    }
+    // Always navigate to home/login
+    navigate("/");
   };
 
   return (
@@ -149,11 +138,6 @@ const AppSidebar = () => {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/10 backdrop-blur-sm flex items-center justify-center z-50">
-          <Loader />
-        </div>
-      )}
     </Sidebar>
   );
 };

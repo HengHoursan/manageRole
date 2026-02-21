@@ -15,21 +15,15 @@ const Protected = ({ children }) => {
   const token = localStorage.getItem("token");
   const expired = isTokenExpired(token);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isTokenExpired(localStorage.getItem("token"))) {
-        window.location.reload(); // Forces re-render and redirect
-      }
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
   if (token && !expired) {
     return children;
   }
 
-  localStorage.removeItem("token");
+  // Clear token just in case it was expired but still in storage
+  if (token) {
+    localStorage.removeItem("token");
+  }
+
   return <Navigate to="/" replace />;
 };
 
