@@ -10,14 +10,24 @@ import { Badge } from "@/components/ui/badge";
 // import { Separator } from "@/components/ui/separator";
 
 const Home = () => {
-  const [user, setUser] = useState({ username: "", role: "", token: "" });
+  const [user, setUser] = useState({
+    username: "",
+    role: "",
+    token: "",
+    phone_number: "",
+  });
 
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("userData"));
     const token = localStorage.getItem("token");
 
     if (userData && token) {
-      setUser({ username: userData.username, role: userData.role, token });
+      setUser({
+        username: userData.username,
+        role: userData.role,
+        token,
+        phone_number: userData.phone_number,
+      });
     }
   }, []);
 
@@ -53,6 +63,11 @@ const Home = () => {
             <span className="font-semibold">Username:</span>{" "}
             {user.username || "Guest"}
           </p>
+          {user.phone_number && (
+            <p>
+              <span className="font-semibold">Phone:</span> {user.phone_number}
+            </p>
+          )}
           <p>
             <span className="font-semibold">Role:</span>{" "}
             <Badge className={roleColor}>{user.role || "Not assigned"}</Badge>

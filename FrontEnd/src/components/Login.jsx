@@ -91,6 +91,7 @@ const Login = () => {
                     username: res.user.username,
                     role: res.user.role,
                     photo_url: res.user.photo_url,
+                    phone_number: res.user.phone_number,
                   }),
                 );
                 toast.success("Welcome back!");

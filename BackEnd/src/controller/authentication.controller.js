@@ -242,6 +242,7 @@ exports.telegramWebAppLogin = async (req, res) => {
         username: user.username,
         role: user.role,
         photo_url: user.photo_url,
+        phone_number: user.phone_number,
         token,
       },
     });
