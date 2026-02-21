@@ -33,6 +33,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isWebApp, setIsWebApp] = useState(false);
+  const [firstName, setFirstName] = useState("");
 
   const form = useForm({
     defaultValues: {
@@ -48,26 +49,64 @@ const Login = () => {
       navigate("/layout");
     }
 
-    // Detect if running in Telegram Mini App
-    if (
-      window.Telegram?.WebApp?.initData ||
-      window.location.hash.includes("tgWebAppData")
-    ) {
-      setIsWebApp(true);
-      console.log("[Mini App] telegram-webapp-sdk detected");
-      window.Telegram.WebApp.expand();
-    }
+    // ULTRA-ROBUST DETECTION (with session persistence):
+    const checkIsWebApp = () => {
+      // 1. Check if the Telegram SDK is actually present in the window
+      const hasSDK = !!(window.Telegram && window.Telegram.WebApp);
 
-    // ANTI-FREEZE: Explicitly wipe out any blocking styles/classes on body/html
-    // This ensures that after a logout or page switch, the Login page is always clickable.
-    document.body.style.pointerEvents = "auto";
-    document.body.style.overflow = "auto";
-    document.body.style.userSelect = "auto";
-    document.documentElement.style.pointerEvents = "auto";
-    document.documentElement.style.overflow = "auto";
+      // 2. Check current URL/SDK signals
+      const isTGCurrent =
+        (hasSDK &&
+          (window.Telegram.WebApp.initData ||
+            window.Telegram.WebApp.platform !== "unknown")) ||
+        window.location.hash.includes("tgWebAppData") ||
+        window.location.search.includes("tgWebAppData") ||
+        window.location.search.includes("tgWebAppPlatform") ||
+        /Telegram/i.test(navigator.userAgent);
 
-    // Remove any Radix-imposed classes if they exist
-    document.body.classList.remove("radix-interaction-modality-none");
+      // 3. Check session memory
+      const wasTG = sessionStorage.getItem("isWebApp") === "true";
+
+      if (isTGCurrent || wasTG || hasSDK) {
+        setIsWebApp(true);
+        sessionStorage.setItem("isWebApp", "true");
+
+        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        if (tgUser?.first_name) {
+          setFirstName(tgUser.first_name);
+        }
+
+        // If SDK is here, expand it
+        if (window.Telegram?.WebApp?.expand) {
+          window.Telegram.WebApp.expand();
+        }
+      }
+    };
+
+    // Run detection immediately and after a short delay
+    checkIsWebApp();
+    const timer = setTimeout(checkIsWebApp, 500);
+    const fallbackTimer = setTimeout(checkIsWebApp, 2000);
+
+    // ANTI-FREEZE & INTERACTION RECOVERY:
+    // This is CRITICAL for the Mini App to remain interactable after logout.
+    const purgeLocks = () => {
+      document.body.style.pointerEvents = "auto";
+      document.body.style.overflow = "auto";
+      document.body.style.userSelect = "auto";
+      document.documentElement.style.pointerEvents = "auto";
+      document.documentElement.style.overflow = "auto";
+      document.body.classList.remove("radix-interaction-modality-none");
+    };
+
+    purgeLocks();
+    // Re-purge after a short delay to catch any late-initializing UI blocks
+    setTimeout(purgeLocks, 500);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(fallbackTimer);
+    };
   }, [navigate]);
 
   // Handle Native Mini App Login with Phone Sharing
@@ -207,31 +246,38 @@ const Login = () => {
   useEffect(() => {
     if (isWebApp) return;
 
-    window.onTelegramAuth = (user) => {
-      console.log("[Widget] onTelegramAuth callback fired:", user);
-      handleWidgetAuth(user);
-    };
+    // Delay widget loading to give detection a chance
+    const widgetTimer = setTimeout(() => {
+      if (isWebApp) return; // Final check
 
-    const widgetContainer = document.getElementById("telegram-login-widget");
-    if (widgetContainer) {
-      widgetContainer.innerHTML = "";
-      const script = document.createElement("script");
-      script.src = "https://telegram.org/js/telegram-widget.js?22";
-      script.async = true;
-      script.setAttribute(
-        "data-telegram-login",
-        import.meta.env.VITE_TELEGRAM_BOT_NAME,
-      );
-      script.setAttribute("data-size", "large");
-      script.setAttribute("data-onauth", "onTelegramAuth(user)");
-      script.setAttribute("data-radius", "8");
-      script.onload = () => console.log("[Widget] Script loaded successfully");
-      script.onerror = (e) =>
-        console.error("[Widget] Script failed to load:", e);
-      widgetContainer.appendChild(script);
-    }
+      window.onTelegramAuth = (user) => {
+        console.log("[Widget] onTelegramAuth callback fired:", user);
+        handleWidgetAuth(user);
+      };
+
+      const widgetContainer = document.getElementById("telegram-login-widget");
+      if (widgetContainer) {
+        widgetContainer.innerHTML = "";
+        const script = document.createElement("script");
+        script.src = "https://telegram.org/js/telegram-widget.js?22";
+        script.async = true;
+        script.setAttribute(
+          "data-telegram-login",
+          import.meta.env.VITE_TELEGRAM_BOT_NAME,
+        );
+        script.setAttribute("data-size", "large");
+        script.setAttribute("data-onauth", "onTelegramAuth(user)");
+        script.setAttribute("data-radius", "8");
+        script.onload = () =>
+          console.log("[Widget] Script loaded successfully");
+        script.onerror = (e) =>
+          console.error("[Widget] Script failed to load:", e);
+        widgetContainer.appendChild(script);
+      }
+    }, 1500);
 
     return () => {
+      clearTimeout(widgetTimer);
       delete window.onTelegramAuth;
     };
   }, [isWebApp]);
@@ -268,89 +314,97 @@ const Login = () => {
       <Card className="w-full max-w-sm bg-white text-black">
         <CardHeader>
           <CardTitle className="text-[20px] text-center">
-            Login to your account
+            {isWebApp
+              ? `Welcome, ${firstName || "Telegram User"}!`
+              : "Login to your account"}
           </CardTitle>
           <CardDescription className="text-center">
             {isWebApp
-              ? "Continue with Telegram inside the app"
+              ? "Please share your contact to continue."
               : "Enter your email below to login to your account"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onLoginSubmit)}
-              className="space-y-5"
-            >
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        {...field}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        {...field}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex items-center space-x-2 mt-2">
-                <Checkbox
-                  id="showPassword"
-                  checked={showPassword}
-                  onCheckedChange={(checked) =>
-                    setShowPassword(Boolean(checked))
-                  }
+        {!isWebApp && (
+          <CardContent>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onLoginSubmit)}
+                className="space-y-5"
+              >
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="Enter your email"
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
                 />
-                <Label htmlFor="showPassword">Show Password</Label>
-              </div>
 
-              <Button className="w-full text-white bg-black" type="submit">
-                Login
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex items-center space-x-2 mt-2">
+                  <Checkbox
+                    id="showPassword"
+                    checked={showPassword}
+                    onCheckedChange={(checked) =>
+                      setShowPassword(Boolean(checked))
+                    }
+                  />
+                  <Label htmlFor="showPassword">Show Password</Label>
+                </div>
+
+                <Button className="w-full text-white bg-black" type="submit">
+                  Login
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        )}
 
         <CardFooter className="flex flex-col">
-          <div className="text-center text-sm">
-            Don't have an account?{" "}
-            <span
-              className="underline cursor-pointer font-medium"
-              onClick={() => navigate("/register")}
-            >
-              Register now
-            </span>
-          </div>
+          {!isWebApp && (
+            <>
+              <div className="text-center text-sm">
+                Don't have an account?{" "}
+                <span
+                  className="underline cursor-pointer font-medium"
+                  onClick={() => navigate("/register")}
+                >
+                  Register now
+                </span>
+              </div>
 
-          <div className="w-full my-6 flex items-center before:flex-1 before:border-t before:border-neutral-300 after:flex-1 after:border-t after:border-neutral-300">
-            <p className="mx-4 text-center font-semibold text-neutral-500 text-[10px]">
-              OR
-            </p>
-          </div>
+              <div className="w-full my-6 flex items-center before:flex-1 before:border-t before:border-neutral-300 after:flex-1 after:border-t after:border-neutral-300">
+                <p className="mx-4 text-center font-semibold text-neutral-500 text-[10px]">
+                  OR
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Telegram Login Section */}
           <div className="flex justify-center items-center w-full min-h-[50px]">
@@ -371,7 +425,9 @@ const Login = () => {
                     fill="currentColor"
                   />
                 </svg>
-                Log in as Telegram User
+                {firstName
+                  ? `Log in as ${firstName}`
+                  : "Log in as Telegram User"}
               </Button>
             ) : (
               <div id="telegram-login-widget" />

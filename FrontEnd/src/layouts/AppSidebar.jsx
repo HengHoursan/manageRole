@@ -52,12 +52,28 @@ const AppSidebar = () => {
   }, []);
 
   const handleLogout = () => {
-    // Clear all local storage
-    localStorage.clear();
+    // Clear credentials
+    localStorage.removeItem("token");
+    localStorage.removeItem("userData");
 
-    // Use window.location.href instead of navigate to force a hard refresh.
-    // This ensures all overlays, styles on body, and states are fully purged.
-    window.location.href = "/";
+    // Explicitly do NOT clear sessionStorage.getItem("isWebApp") here
+    // to preserve the identity of the environment.
+
+    // Unlock interaction before reload
+    document.body.style.pointerEvents = "auto";
+    document.body.style.overflow = "auto";
+
+    // Re-detect if we are in a Mini App
+    const isWebAppEnv = sessionStorage.getItem("isWebApp") === "true";
+
+    if (isWebAppEnv) {
+      // In Mini App, simply reload the current page.
+      // This resets React state but keeps the URL hash/signals required for detection.
+      window.location.reload();
+    } else {
+      // In normal browser, hard redirect to root is fine.
+      window.location.href = "/";
+    }
   };
 
   return (
