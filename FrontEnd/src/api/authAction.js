@@ -57,3 +57,21 @@ export const telegramWebAppLogin = async (initData, phone_number) => {
     throw error;
   }
 };
+
+export const updateUserPhone = async (token, phone_number) => {
+  try {
+    const response = await axios.put(
+      `${API_URL}/api/users/phone`,
+      { phone_number },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error updating phone number:", error);
+    throw error;
+  }
+};

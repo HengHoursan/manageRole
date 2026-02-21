@@ -7,6 +7,11 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { updateUserPhone } from "@/api/authAction";
+import { toast } from "sonner";
+import { Phone, Check, X } from "lucide-react";
 // import { Separator } from "@/components/ui/separator";
 
 const Home = () => {
