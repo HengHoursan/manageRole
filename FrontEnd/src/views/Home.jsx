@@ -22,6 +22,10 @@ const Home = () => {
     phone_number: "",
   });
 
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [newPhone, setNewPhone] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("userData"));
     const token = localStorage.getItem("token");
@@ -33,8 +37,46 @@ const Home = () => {
         token,
         phone_number: userData.phone_number,
       });
+      setNewPhone(userData.phone_number || "");
     }
   }, []);
+
+  const handlePhoneUpdate = async () => {
+    try {
+      if (!newPhone) {
+        toast.error("Please enter a phone number");
+        return;
+      }
+
+      setIsUpdating(true);
+      // Format: replace international 855 with 0
+      const formattedPhone = newPhone.replace(/^\+?855/, "0");
+
+      const response = await updateUserPhone(user.token, formattedPhone);
+
+      if (response.phone_number) {
+        // Update local state
+        setUser((prev) => ({ ...prev, phone_number: response.phone_number }));
+
+        // Update localStorage
+        const userData = JSON.parse(localStorage.getItem("userData"));
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({
+            ...userData,
+            phone_number: response.phone_number,
+          }),
+        );
+
+        toast.success("Phone number updated!");
+        setIsEditingPhone(false);
+      }
+    } catch (error) {
+      toast.error("Failed to update phone number");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const shortToken = user.token
     ? `${user.token.slice(0, 10)}...${user.token.slice(-10)}`
@@ -63,19 +105,67 @@ const Home = () => {
             Details pulled from your authentication token.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p>
-            <span className="font-semibold">Username:</span>{" "}
-            {user.username || "Guest"}
-          </p>
-          <p>
-            <span className="font-semibold">Phone:</span>{" "}
-            {user.phone_number || "Not Shared"}
-          </p>
-          <p>
-            <span className="font-semibold">Role:</span>{" "}
+        <CardContent className="space-y-4">
+          <div className="flex justify-between items-center">
+            <p>
+              <span className="font-semibold">Username:</span>{" "}
+              {user.username || "Guest"}
+            </p>
             <Badge className={roleColor}>{user.role || "Not assigned"}</Badge>
-          </p>
+          </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-muted-foreground" />
+                <span className="font-semibold">Phone:</span>{" "}
+                {isEditingPhone ? (
+                  <Input
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="Enter phone number"
+                    className="h-8 w-40 text-xs"
+                    disabled={isUpdating}
+                  />
+                ) : (
+                  <span className="text-sm">
+                    {user.phone_number || "Not Shared"}
+                  </span>
+                )}
+              </div>
+
+              {isEditingPhone ? (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsEditingPhone(false)}
+                    disabled={isUpdating}
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handlePhoneUpdate}
+                    disabled={isUpdating}
+                    className="h-8 w-8 p-0"
+                  >
+                    {isUpdating ? "..." : <Check className="w-4 h-4" />}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingPhone(true)}
+                  className="h-8"
+                >
+                  {user.phone_number ? "Change" : "Add Phone"}
+                </Button>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 

@@ -8,7 +8,17 @@ const productRoutes = require("./src/routes/product.routes");
 const userRoutes = require("./src/routes/user.routes");
 
 const app = express();
-// ... (rest of server.js)
+const PORT = process.env.PORT || 3001;
+
+// Connect to MongoDB
+mongoConnection();
+
+// Middleware
+app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(cors());
+
+// define routes
 app.use("/api/auth", authenticationRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/productCategories", productCategoryRoutes);
