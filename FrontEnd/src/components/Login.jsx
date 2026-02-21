@@ -314,8 +314,8 @@ const Login = () => {
           </div>
 
           <div className="w-full my-6 flex items-center before:flex-1 before:border-t before:border-neutral-300 after:flex-1 after:border-t after:border-neutral-300">
-            <p className="mx-4 text-center font-semibold text-neutral-500">
-              OR
+            <p className="mx-4 text-center font-semibold text-neutral-500 text-[10px]">
+              OR (V2 - NATIVE FLOW)
             </p>
           </div>
 
