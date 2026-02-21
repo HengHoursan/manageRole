@@ -55,12 +55,16 @@ const Login = () => {
     document.body.style.overflow = "auto";
     document.documentElement.style.pointerEvents = "auto";
 
-    // Detect if running in Telegram Mini App
-    if (window.Telegram?.WebApp?.initData) {
-      setIsWebApp(true);
-      console.log("[Mini App] telegram-webapp-sdk detected");
-      window.Telegram.WebApp.expand();
-    }
+    // ANTI-FREEZE: Explicitly wipe out any blocking styles/classes on body/html
+    // This solves issues where Radix UI or Sidebar leave 'pointer-events: none'
+    document.body.style.pointerEvents = "auto";
+    document.body.style.overflow = "auto";
+    document.body.style.userSelect = "auto";
+    document.documentElement.style.pointerEvents = "auto";
+    document.documentElement.style.overflow = "auto";
+
+    // Remove any Radix-imposed classes if they exist
+    document.body.classList.remove("radix-interaction-modality-none");
   }, [navigate]);
 
   // Handle Native Mini App Login with Phone Sharing
