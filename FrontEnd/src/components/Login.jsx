@@ -49,44 +49,34 @@ const Login = () => {
       navigate("/layout");
     }
 
-    // ULTRA-ROBUST DETECTION (with session persistence):
-    const checkIsWebApp = () => {
-      // 1. Check if the Telegram SDK is actually present in the window
-      const hasSDK = !!(window.Telegram && window.Telegram.WebApp);
-
-      // 2. Check current URL/SDK signals
-      const isTGCurrent =
-        (hasSDK &&
-          (window.Telegram.WebApp.initData ||
-            window.Telegram.WebApp.platform !== "unknown")) ||
+    // DEFINITIVE NATIVE DETECTION:
+    // If we are in Telegram, we MUST use the native flow to avoid redirects.
+    const enforceNativeFlow = () => {
+      const tg = window.Telegram?.WebApp;
+      const hasTGParams =
         window.location.hash.includes("tgWebAppData") ||
-        window.location.search.includes("tgWebAppData") ||
-        window.location.search.includes("tgWebAppPlatform") ||
-        /Telegram/i.test(navigator.userAgent);
+        window.location.search.includes("tgWebAppData");
 
-      // 3. Check session memory
-      const wasTG = sessionStorage.getItem("isWebApp") === "true";
-
-      if (isTGCurrent || wasTG || hasSDK) {
+      // If the SDK is loaded or we see data signals, we are in a Mini App.
+      if ((tg?.platform && tg.platform !== "unknown") || hasTGParams) {
         setIsWebApp(true);
         sessionStorage.setItem("isWebApp", "true");
 
-        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-        if (tgUser?.first_name) {
-          setFirstName(tgUser.first_name);
+        const user = tg?.initDataUnsafe?.user;
+        if (user?.first_name) {
+          setFirstName(user.first_name);
         }
 
-        // If SDK is here, expand it
-        if (window.Telegram?.WebApp?.expand) {
-          window.Telegram.WebApp.expand();
-        }
+        if (tg?.expand) tg.expand();
+        console.log("[Mini App] Enforcing native flow");
       }
     };
 
-    // Run detection immediately and after a short delay
-    checkIsWebApp();
-    const timer = setTimeout(checkIsWebApp, 500);
-    const fallbackTimer = setTimeout(checkIsWebApp, 2000);
+    enforceNativeFlow();
+    // Re-check frequently during the first 2 seconds to catch slow SDK init
+    const intervals = [200, 500, 1000, 2000].map((ms) =>
+      setTimeout(enforceNativeFlow, ms),
+    );
 
     // ANTI-FREEZE & INTERACTION RECOVERY:
     // This is CRITICAL for the Mini App to remain interactable after logout.
@@ -104,8 +94,7 @@ const Login = () => {
     setTimeout(purgeLocks, 500);
 
     return () => {
-      clearTimeout(timer);
-      clearTimeout(fallbackTimer);
+      intervals.forEach(clearTimeout);
     };
   }, [navigate]);
 
@@ -274,7 +263,7 @@ const Login = () => {
           console.error("[Widget] Script failed to load:", e);
         widgetContainer.appendChild(script);
       }
-    }, 1500);
+    }, 3000); // 3-second delay to prioritize native detection
 
     return () => {
       clearTimeout(widgetTimer);
