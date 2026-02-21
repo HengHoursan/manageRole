@@ -7,6 +7,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 // import { Separator } from "@/components/ui/separator";
 
 const Home = () => {
@@ -63,17 +64,39 @@ const Home = () => {
             <span className="font-semibold">Username:</span>{" "}
             {user.username || "Guest"}
           </p>
-          {user.phone_number && (
-            <p>
-              <span className="font-semibold">Phone:</span> {user.phone_number}
-            </p>
-          )}
+          <p>
+            <span className="font-semibold">Phone:</span>{" "}
+            {user.phone_number || "Not Shared"}
+          </p>
           <p>
             <span className="font-semibold">Role:</span>{" "}
             <Badge className={roleColor}>{user.role || "Not assigned"}</Badge>
           </p>
+
+          <Button
+            variant="destructive"
+            className="w-full mt-4"
+            onClick={() => {
+              localStorage.clear();
+              window.location.reload();
+            }}
+          >
+            Log Out
+          </Button>
         </CardContent>
       </Card>
+
+      {/* Debug Section - Hidden in production normally, but visible for now */}
+      <div className="p-4 bg-gray-100 rounded-md text-xs font-mono break-all overflow-auto">
+        <p className="font-bold mb-1 underline">
+          Raw Debug Info (localStorage):
+        </p>
+        {JSON.stringify(
+          JSON.parse(localStorage.getItem("userData") || "{}"),
+          null,
+          2,
+        )}
+      </div>
 
       <Card>
         <CardHeader>
