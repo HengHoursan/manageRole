@@ -54,10 +54,10 @@ const AppSidebar = () => {
   const handleLogout = () => {
     // Clear all local storage
     localStorage.clear();
-    toast.success("Logged out successfully");
 
-    // Always navigate to home/login
-    navigate("/");
+    // Use window.location.href instead of navigate to force a hard refresh.
+    // This ensures all overlays, styles on body, and states are fully purged.
+    window.location.href = "/";
   };
 
   return (

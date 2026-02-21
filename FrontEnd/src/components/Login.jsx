@@ -48,6 +48,13 @@ const Login = () => {
       navigate("/layout");
     }
 
+    // FORCE INTERACTION RECOVERY:
+    // Some UI primitives (like Radix Dropdowns) can leave body-level locks
+    // especially during navigation/logout. This ensures the Login page is clickable.
+    document.body.style.pointerEvents = "auto";
+    document.body.style.overflow = "auto";
+    document.documentElement.style.pointerEvents = "auto";
+
     // Detect if running in Telegram Mini App
     if (window.Telegram?.WebApp?.initData) {
       setIsWebApp(true);
