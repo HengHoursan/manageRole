@@ -34,6 +34,13 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isWebApp, setIsWebApp] = useState(false);
 
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
   // Redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("token");
