@@ -13,6 +13,10 @@ RUN --mount=type=cache,target=/root/.npm npm install
 
 COPY . .
 
+# Set build-time variables for Vite
+ARG VITE_BASE_URL
+ENV VITE_BASE_URL=$VITE_BASE_URL
+
 # Build the application
 RUN npm run build
 
