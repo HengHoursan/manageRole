@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: ./FrontEnd
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build:
+      context: ./BackEnd
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./BackEnd/.env
+    restart: always

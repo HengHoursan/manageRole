@@ -1,34 +1,33 @@
 # =========================================
-# Stage 1: Develop the React Application (Vite)
+# Stage 1: Build the React Application (Vite)
 # =========================================
 ARG NODE_VERSION=20.12.0-alpine
 
-# Use a lightweight Node.js image for development
-FROM node:${NODE_VERSION} AS dev
+FROM node:${NODE_VERSION} AS build
 
-# Set environment variable to indicate development mode
-ENV NODE_ENV=development
-
-# Set the working directory inside the container
 WORKDIR /src
 
-# Copy package-related files first to leverage Docker's caching mechanism
 COPY package.json package-lock.json* ./
 
-# Install project dependencies
 RUN --mount=type=cache,target=/root/.npm npm install
 
-# Copy the rest of the application source code into the container
 COPY . .
 
-# Change ownership of the application directory to the node user
-RUN chown -R node:node /src
+# Build the application
+RUN npm run build
 
-# Switch to the node user
-USER node
+# =========================================
+# Stage 2: Serve with Nginx
+# =========================================
+FROM nginx:alpine AS production
 
-# Expose the port used by the Vite development server
-EXPOSE 5173
+# Copy the build output to Nginx's html directory
+COPY --from=build /src/dist /usr/share/nginx/html
 
-# Use a default command, can be overridden in Docker compose.yml file
-CMD [ "npm", "run", "dev", "--", "--host" ]
+# Copy custom nginx configuration if needed (optional)
+# COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 80
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
